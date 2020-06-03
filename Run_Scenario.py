@@ -1,24 +1,30 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
+# Copyright (c) 2020 
+#Jiyo Jolly Palatti
 
-# Allows controlling a vehicle with a keyboard. For a simpler and more
-# documented example, please take a look at tutorial.py.
 
 """
-Welcome to CARLA manual control.
-Meowwww
-sdfsdgsdg
+Welcome to Autonomous Scenario Client.
 
-sdgsdgsdgs
+Use ARROWS or WASD keys for control.
 
+    W            : throttle
+    S            : brake
+    A/D          : steer left/right
+    Q            : toggle reverse
+    Space        : hand-brake
+    P            : toggle autopilot
+    M            : toggle manual transmission
+    ,/.          : gear up/down
 
+    Backspace    : Reset Scenario
 
-sdgsdgsdgsdg
+    C            : change weather (Shift+C reverse)
+
+    ESC          : quit
+    
+
 """
 
 from __future__ import print_function
@@ -78,10 +84,11 @@ from Utils import HUD
 def main_loop(args):
     pygame.init()
     pygame.font.init()
-    world = None
+    world = None 
 
     try:
         client = carla.Client(args.host, args.port)
+
         client.set_timeout(2.0)
 
         display = pygame.display.set_mode(
@@ -89,7 +96,10 @@ def main_loop(args):
             pygame.HWSURFACE | pygame.DOUBLEBUF)
 
         hud = HUD(args.width, args.height)
-        world = World(client.load_world('Town07'), hud, args)
+        world = World(client, hud, args)
+        #Initialise World
+        world.init(client)
+
 
         
         # Control Code
@@ -99,6 +109,7 @@ def main_loop(args):
         while True:
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock):
+                print("Stopping Client!! Destroying actors")
                 return
             world.tick(clock)
             world.render(display)
@@ -110,7 +121,7 @@ def main_loop(args):
             client.stop_recorder()
 
         if world is not None:
-            world.destroy()
+            world.destroy(client)
 
         pygame.quit()
 
@@ -163,6 +174,18 @@ def main():
         default=2.2,
         type=float,
         help='Gamma correction of the camera (default: 2.2)')
+    argparser.add_argument(
+        '--deltatime',
+        default=0.05,
+        type=float,
+        help='Fixed delta seconds (default: 0.01)')
+    argparser.add_argument(
+        '--map',
+        metavar='MAP',
+        default='Town07',
+        help='Fixed delta seconds (default: Town07)')
+
+    
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

@@ -1,24 +1,11 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-# Allows controlling a vehicle with a keyboard. For a simpler and more
-# documented example, please take a look at tutorial.py.
+# Copyright (c) 2020 
+#Jiyo Jolly Palatti
 
 """
-Welcome to CARLA manual control.
-Meowwww
-sdfsdgsdg
+Package containing simple helper functions and classes 
 
-sdgsdgsdgs
-
-
-
-sdgsdgsdgsdg
 """
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
@@ -84,6 +71,8 @@ def find_weather_presets():
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
 
+def get_spawnpoint(loc):
+	return carla.Transform(carla.Location(x=loc[0],y=loc[1],z=loc[2]),carla.Rotation(yaw=loc[3]))
 
 # ==============================================================================
 # -- CameraManager -------------------------------------------------------------

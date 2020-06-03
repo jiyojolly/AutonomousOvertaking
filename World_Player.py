@@ -1,24 +1,12 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
+# Copyright (c) 2020 
+#Jiyo Jolly Palatti
 
-# Allows controlling a vehicle with a keyboard. For a simpler and more
-# documented example, please take a look at tutorial.py.
 
 """
-Welcome to CARLA manual control.
-Meowwww
-sdfsdgsdg
+Definitons for World & Client.
 
-sdgsdgsdgs
-
-
-
-sdgsdgsdgsdg
 """
 
 # ==============================================================================
@@ -63,6 +51,7 @@ except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
 #Import User defined
+import Utils
 from Utils import find_weather_presets, get_actor_display_name, CameraManager 
 
 
@@ -72,8 +61,14 @@ from Utils import find_weather_presets, get_actor_display_name, CameraManager
 
 
 class World(object):
-    def __init__(self, carla_world, hud, args):
-        self.world = carla_world
+    def __init__(self, client, hud, args):
+        # self.world = client.load_world(args.map)
+        self.world = client.get_world()
+        self.synchronous_mode = False
+        settings = self.world.get_settings()
+        settings.fixed_delta_seconds = args.deltatime
+        self.world.apply_settings(settings)
+
         self.actor_role_name = args.rolename
         try:
             self.map = self.world.get_map()
@@ -98,23 +93,21 @@ class World(object):
 
         #Other Agents
         self.npc_agents = []
-
-        #Initialise World
-        self.restart()
-        #Register callback functions on world tick
-        self.world.on_tick(hud.on_world_tick)
+        self.spawn_points = []        
 
         #Recording
         self.recording_enabled = False
         self.recording_start = 0
 
-    def restart(self):
+    def init(self,client):
 
+        #Register callback functions on world tick
+        self.world.on_tick(self.hud.on_world_tick)
+        
         #Setup Scenario
         # Setup Ego Vehicle
         self.init_ego()
-        self.init_npcs(10)
-        
+
         # Set up the sensors.
         # Keep same camera config if the camera manager exists.
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
@@ -127,6 +120,15 @@ class World(object):
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
 
+        # Setup npcs Vehicle
+        self.init_npcs(client)
+
+    def restart(self, client):
+        self.destroy(client)
+        print("Resetting Scenario....")
+        self.init(client)
+
+
     def init_ego(self):
         #blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
         blueprint = self.world.get_blueprint_library().find("vehicle.dodge_charger.police")
@@ -137,10 +139,8 @@ class World(object):
         if blueprint.has_attribute('driver_id'):
             driver_id = random.choice(blueprint.get_attribute('driver_id').recommended_values)
             blueprint.set_attribute('driver_id', driver_id)
-        if blueprint.has_attribute('is_invincible'):
-            blueprint.set_attribute('is_invincible', 'true')
 
-        # Spawn the player.
+        # # Spawn the player.
         if self.player is not None:
             spawn_point = self.player.get_transform()
             spawn_point.location.z += 2.0
@@ -148,28 +148,63 @@ class World(object):
             spawn_point.rotation.pitch = 0.0
             self.destroy()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        # while self.player is None:
+        #     if not self.map.get_spawn_points():
+        #         print('There are no spawn points available in your map/town.')
+        #         print('Please add some Vehicle Spawn Point to your UE4 scene.')
+        #         sys.exit(1)
+        #     spawn_points = self.map.get_spawn_points()
+        #     spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+        #     self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         while self.player is None:
-            if not self.map.get_spawn_points():
-                print('There are no spawn points available in your map/town.')
-                print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+            spawn_point = Utils.get_spawnpoint([-198,-75,5,-90])
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
 
-    def init_npcs(self,no_npcs):
+    def init_npcs(self,client):
 
-        for x in range(0,no_npcs):
+        # @todo cannot import these directly.
+        SpawnActor = carla.command.SpawnActor
+        SetAutopilot = carla.command.SetAutopilot
+        FutureActor = carla.command.FutureActor
+        spawn_locs = [[-198,-85,5,-90], [-198,-95,5,-90], [-198,-105,5,-90]]
+        self.spawn_points = [Utils.get_spawnpoint(x) for x in spawn_locs]
+
+        # --------------
+        # Spawn vehicles
+        # --------------
+        batch = []
+        for n, transform in enumerate(self.spawn_points):    
             blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-            if not self.map.get_spawn_points():
-                    print('There are no spawn points available in your map/town.')
-                    print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                    sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-            npc_agent = self.world.try_spawn_actor(blueprint, spawn_point)
-            npc_agent.set_autopilot()
-            self.npc_agents.append(npc_agent)
+            if blueprint.has_attribute('color'):
+                color = random.choice(blueprint.get_attribute('color').recommended_values)
+                blueprint.set_attribute('color', color)
+            blueprint.set_attribute('role_name', 'NPC_'+str(n))
+            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, False)))
+
+        for response in client.apply_batch_sync(batch, self.synchronous_mode):
+            if response.error:
+                logging.error(response.error)
+            else:
+                self.npc_agents.append(response.actor_id)
+
+
+        # for x in range(0,no_npcs):
+        #     blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
+        #     print(blueprint.id)
+        #     if not self.map.get_spawn_points():
+        #             print('There are no spawn points available in your map/town.')
+        #             print('Please add some Vehicle Spawn Point to your UE4 scene.')
+        #             sys.exit(1)
+        #     spawn_points = self.map.get_spawn_points()
+        #     spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+        #     try:
+        #         npc_agent = self.world.try_spawn_actor(blueprint, spawn_point)                    
+        #         npc_agent.set_autopilot()
+        #         self.npc_agents.append(npc_agent)
+        #     except Exception as e:
+        #         print("Could not spawn NPC Agent")
+        #         raise e
+
         
 
     def next_weather(self, reverse=False):
@@ -191,15 +226,28 @@ class World(object):
         self.camera_manager.sensor = None
         self.camera_manager.index = None
 
-    def destroy(self):
+    def destroy(self,client):
         actors = [
             self.camera_manager.sensor,
             self.collision_sensor.sensor,
             self.lane_invasion_sensor.sensor,
             self.player]
+        
         for actor in actors:
             if actor is not None:
-                actor.destroy()
+                actor.destroy()      
+
+        client.apply_batch([carla.command.DestroyActor(x) for x in self.npc_agents])
+        self.npc_agents = []
+        self.camera_manager.sensor = None
+        self.collision_sensor.sensor = None
+        self.lane_invasion_sensor.sensor = None
+        self.player = None 
+
+        # [print(x.type_id) for x in actors]          
+        # [print((self.world.get_actor(x)).type_id) for x in self.npc_agents]
+        
+        print("All actors destroyed!!!")
 
 
 
@@ -268,5 +316,3 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         self.hud.notification('Crossed line %s' % ' and '.join(text))
-
-
