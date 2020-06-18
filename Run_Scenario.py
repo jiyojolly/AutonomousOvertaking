@@ -38,6 +38,7 @@ from __future__ import print_function
 import glob
 import os
 import sys
+import random
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -54,6 +55,7 @@ except IndexError:
 import carla
 
 from carla import ColorConverter as cc
+from agents.navigation.behavior_agent import BehaviorAgent  # pylint: disable=import-error
 
 import argparse
 import logging
@@ -97,23 +99,49 @@ def main_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client, hud, args)
-        #Initialise World
-        world.init(client)
-
 
         
-        # Control Code
+        ## Control Section
+        # Keyboard control
         controller = KeyboardControl(world, args.autopilot)
+
+        # Agent control
+        agent = BehaviorAgent(world.player, behavior='normal')
+
+        spawn_points = world.map.get_spawn_points()
+        random.shuffle(spawn_points)
+
+        if spawn_points[0].location != agent.vehicle.get_location():
+            destination = spawn_points[0].location
+        else:
+            destination = spawn_points[1].location
+
+        agent.set_destination(agent.vehicle.get_location(), destination, clean=True)
+
 
         clock = pygame.time.Clock()
         while True:
-            clock.tick_busy_loop(60)
+            clock.tick_busy_loop(30)
             if controller.parse_events(client, world, clock):
                 print("Stopping Client!! Destroying actors")
                 return
+
+            # # As soon as the server is ready continue!
+            # if not world.world.wait_for_tick(10.0):
+            #     continue
+
+            agent.update_information(world)
+            
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
+
+            speed_limit = world.player.get_speed_limit()
+            agent.get_local_planner().set_speed(speed_limit)
+
+            control = agent.run_step()
+            world.player.apply_control(control)
+
 
     finally:
 
@@ -178,7 +206,12 @@ def main():
         '--deltatime',
         default=0.05,
         type=float,
-        help='Fixed delta seconds (default: 0.01)')
+        help='Fixed delta seconds (default: 0.05)')
+    argparser.add_argument(
+        '--syncmode',
+        default=False,
+        action='store_true',
+        help='Enable Synchronous Mode (default: False)')
     argparser.add_argument(
         '--map',
         metavar='MAP',

@@ -62,14 +62,16 @@ from Utils import find_weather_presets, get_actor_display_name, CameraManager
 
 class World(object):
     def __init__(self, client, hud, args):
-        # self.world = client.load_world(args.map)
-        self.world = client.get_world()
-        self.synchronous_mode = False
-        settings = self.world.get_settings()
-        settings.fixed_delta_seconds = args.deltatime
-        self.world.apply_settings(settings)
+        self.world = client.load_world(args.map)
+        # self.world = client.get_world()
+        self.settings = self.world.get_settings()
+        self.settings.fixed_delta_seconds = args.deltatime
+        print("Synchronous Mode "+ str(args.syncmode))
+        self.settings.synchronous_mode = args.syncmode
+        self.world.apply_settings(self.settings)
 
         self.actor_role_name = args.rolename
+        
         try:
             self.map = self.world.get_map()
         except RuntimeError as error:
@@ -78,13 +80,15 @@ class World(object):
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
 
+        #UI Elements
+        self.hud = hud
+
         self.player = None
         #Create Sensor Objects
         self.collision_sensor = None
         self.lane_invasion_sensor = None
         self.camera_manager = None
-        #UI Elements
-        self.hud = hud
+
         #Weather 
         self._weather_presets = find_weather_presets()
         self._weather_index = 0
@@ -93,7 +97,10 @@ class World(object):
 
         #Other Agents
         self.npc_agents = []
-        self.spawn_points = []        
+        self.spawn_points = []  
+
+        #Initialise World
+        self.init(client)      
 
         #Recording
         self.recording_enabled = False
@@ -130,8 +137,7 @@ class World(object):
 
 
     def init_ego(self):
-        #blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-        blueprint = self.world.get_blueprint_library().find("vehicle.dodge_charger.police")
+        blueprint = self.world.get_blueprint_library().find("vehicle.audi.a2")
         blueprint.set_attribute('role_name', self.actor_role_name)
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
@@ -179,33 +185,14 @@ class World(object):
                 color = random.choice(blueprint.get_attribute('color').recommended_values)
                 blueprint.set_attribute('color', color)
             blueprint.set_attribute('role_name', 'NPC_'+str(n))
-            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, False)))
+            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, True)))
 
-        for response in client.apply_batch_sync(batch, self.synchronous_mode):
+        for response in client.apply_batch_sync(batch, self.settings.synchronous_mode):
             if response.error:
                 logging.error(response.error)
             else:
                 self.npc_agents.append(response.actor_id)
-
-
-        # for x in range(0,no_npcs):
-        #     blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-        #     print(blueprint.id)
-        #     if not self.map.get_spawn_points():
-        #             print('There are no spawn points available in your map/town.')
-        #             print('Please add some Vehicle Spawn Point to your UE4 scene.')
-        #             sys.exit(1)
-        #     spawn_points = self.map.get_spawn_points()
-        #     spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-        #     try:
-        #         npc_agent = self.world.try_spawn_actor(blueprint, spawn_point)                    
-        #         npc_agent.set_autopilot()
-        #         self.npc_agents.append(npc_agent)
-        #     except Exception as e:
-        #         print("Could not spawn NPC Agent")
-        #         raise e
-
-        
+      
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -216,6 +203,7 @@ class World(object):
 
     def tick(self, clock):
         self.hud.tick(self, clock)
+
 
     def render(self, display):
         self.camera_manager.render(display)
@@ -269,6 +257,7 @@ class CollisionSensor(object):
         # reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
+        # print("Collision Sensor spwaned and listening")
 
     def get_collision_history(self):
         history = collections.defaultdict(int)
@@ -281,6 +270,7 @@ class CollisionSensor(object):
         self = weak_self()
         if not self:
             return
+        # print("Collision")
         actor_type = get_actor_display_name(event.other_actor)
         self.hud.notification('Collision with %r' % actor_type)
         impulse = event.normal_impulse
