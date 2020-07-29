@@ -1,0 +1,8 @@
+{
+	"Yukawa_Acar":10.0,
+	"Yukawa_alpha":0.5,
+	"Obstacle_W":2.0,
+	"Obstacle_L":4.0,
+	"X_limit":[-20,20],
+	"Y_limit":[-40,40]
+}
