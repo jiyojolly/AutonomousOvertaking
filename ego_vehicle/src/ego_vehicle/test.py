@@ -42,13 +42,14 @@ def main():
     #TO DO Convert position (x,y) to Point objects
 
     # Dummy ego car postion Point(x,y)
-    ego_car_loc = Point(-5,-5)
-    ax_2d.plot(np.asarray(ego_car_loc)[1],np.asarray(ego_car_loc)[0],marker='x')
+    ego_car_loc = Point(-5,-10)
+    print(ego_car_loc.x)
+    ax_2d.plot(np.asarray(ego_car_loc)[0], np.asarray(ego_car_loc)[1], marker='x')
 
     # Dummy subject car #1 postion  
-    sub_car_locs = [Point(5,-1), Point(0,3), Point(3,8)]
+    sub_car_locs = [Point(-10,-1), Point(0,3), Point(10,8)]
     # sub_car_locs = [Point(5,1)]
-    [ax_2d.plot(np.asarray(loc)[1],np.asarray(loc)[0],marker='o') for loc in sub_car_locs]
+    [ax_2d.plot(np.asarray(loc)[0], np.asarray(loc)[1], marker='o') for loc in sub_car_locs]
 
 
     # Create car potential class
@@ -56,6 +57,7 @@ def main():
     
     car_pot.update_obst_plgn(sub_car_locs, json_params)    
     
+
     # Plot obstacle polygons
     [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
     
@@ -68,10 +70,7 @@ def main():
     y = np.arange(y_vision_limit[0],y_vision_limit[1], 0.5)
     pos_meshgrid = np.meshgrid(x, y, sparse=False)
 
-    z = np.zeros(pos_meshgrid[0].shape)
-    
-
-    z_all = car_pot.update_car_pot(pos_meshgrid,json_params) 
+    z = car_pot.update_car_pot(pos_meshgrid,json_params) 
     # + road_pot.update_road_pot()
     
     # Print min max of pot field
@@ -79,7 +78,7 @@ def main():
 
     # Plot potential field as a 3d surface plot
     print("Shape of Meshgrid: {:s} - {:s} - {:s}".format(pos_meshgrid[0].shape,pos_meshgrid[1].shape,z.shape))
-    surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
+    surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
     fig_3d.colorbar(surf, shrink=0.5, aspect=5)
 
     ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title=None)
@@ -92,27 +91,27 @@ def main():
     ax_3d.set_zlim(zlims[0],zlims[1])
 
         
-    print("Update plot with latest values")
-    for delta in np.linspace(0, 10, 50):
-        surf.remove()
-        ax_2d.clear()
-        print("Point : {:s}".format(sub_car_locs[0]))
-        sub_car_locs[0] = Point(sub_car_locs[0].x + delta, sub_car_locs[0].y)
-        print("Point : {:s}".format(sub_car_locs[0]))
-        car_pot.update_obst_plgn(sub_car_locs, json_params)
-        z = car_pot.update_car_pot(pos_meshgrid,json_params)
-        surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
-        # Plot obstacle polygons
-        [ax_2d.plot(np.asarray(loc)[1],np.asarray(loc)[0],marker='o') for loc in sub_car_locs]
-        [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
+    # print("Update plot with latest values")
+    # for delta in np.linspace(0, 10, 50):
+    #     surf.remove()
+    #     ax_2d.clear()
+    #     print("Point : {:s}".format(sub_car_locs[0]))
+    #     sub_car_locs[0] = Point(sub_car_locs[0].x + delta, sub_car_locs[0].y)
+    #     car_pot.update_obst_plgn(sub_car_locs, json_params)
+    #     z = car_pot.update_car_pot(pos_meshgrid,json_params)
+    #     surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
+    #     # Plot obstacle polygons
+    #     [ax_2d.plot(np.asarray(loc)[1],np.asarray(loc)[0],marker='o') for loc in sub_car_locs]
+    #     [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
 
-        fig_3d.canvas.draw()
-        fig_2d.canvas.draw()
-        ax_2d.set_xlim(xlims[0],xlims[1])
-        ax_2d.set_ylim(ylims[0],ylims[1])
+    #     fig_3d.canvas.draw()
+    #     fig_2d.canvas.draw()
+    #     ax_2d.set_xlim(xlims[0],xlims[1])
+    #     ax_2d.set_ylim(ylims[0],ylims[1])
         
     
-    # plt.show()
+    fig_3d.canvas.draw()
+    fig_2d.canvas.draw()
     raw_input("Press Enter to continue...")
 
 
