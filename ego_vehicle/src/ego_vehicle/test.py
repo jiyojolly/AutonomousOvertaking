@@ -29,7 +29,7 @@ def main():
     ax_2d = fig_2d.add_subplot(111)
 
     # Define X, Y, Z limits for plots
-    xlims = np.array([-50,50])
+    xlims = np.array(np.array([-50,50]))
     ylims = np.array([-50,50])
     zlims = np.array([0,30])
 
@@ -42,7 +42,7 @@ def main():
     #TO DO Convert position (x,y) to Point objects
 
     # Dummy ego car postion Point(x,y)
-    ego_car_loc = Point(-5,-10)
+    ego_car_loc = Point([-5,-10])
     print(ego_car_loc.x)
     ax_2d.plot(np.asarray(ego_car_loc)[0], np.asarray(ego_car_loc)[1], marker='x')
 
@@ -55,64 +55,66 @@ def main():
     # Create car potential class
     car_pot = CarPotential()
     
-    car_pot.update_obst_plgn(sub_car_locs, json_params)    
-    
-
-    # Plot obstacle polygons
-    [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
-    
-    # Plot Nearest point to obstable
-    [ax_2d.plot([shapely.ops.nearest_points(ego_car_loc,plgn)[0].x,shapely.ops.nearest_points(ego_car_loc,poly)[1].x],
-            [shapely.ops.nearest_points(ego_car_loc,plgn)[0].y,shapely.ops.nearest_points(ego_car_loc,poly)[1].y]) for poly in car_pot.plgn_list]
+    car_pot.update_obst_plgn(sub_car_locs, json_params)   
 
     # Create mesh for potential calculation
-    x = np.arange(x_vision_limit[0],x_vision_limit[1], 0.5)
-    y = np.arange(y_vision_limit[0],y_vision_limit[1], 0.5)
-    pos_meshgrid = np.meshgrid(x, y, sparse=False)
+    x = np.arange(x_vision_limit[0],x_vision_limit[1], 0.2)
+    y = np.arange(y_vision_limit[0],y_vision_limit[1], 0.2)
+    pos_meshgrid = np.meshgrid(x, y, sparse=True)
 
-    z = car_pot.update_car_pot(pos_meshgrid,json_params) 
-    # + road_pot.update_road_pot()
+    z = car_pot.update_car_pot(pos_meshgrid,json_params)  
     
-    # Print min max of pot field
+     # Print min max of pot field
     print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
 
-    # Plot potential field as a 3d surface plot
-    print("Shape of Meshgrid: {:s} - {:s} - {:s}".format(pos_meshgrid[0].shape,pos_meshgrid[1].shape,z.shape))
-    surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
-    fig_3d.colorbar(surf, shrink=0.5, aspect=5)
-
-    ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title=None)
-
-    #Set axes limits of all plots
-    ax_2d.set_xlim(xlims[0],xlims[1])
-    ax_2d.set_ylim(ylims[0],ylims[1])
-    ax_3d.set_xlim(xlims[0],xlims[1])
-    ax_3d.set_ylim(ylims[0],ylims[1])
-    ax_3d.set_zlim(zlims[0],zlims[1])
-
+    def plot_all(z):
+        # Plot obstacle polygons
+        [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
         
-    # print("Update plot with latest values")
-    # for delta in np.linspace(0, 10, 50):
-    #     surf.remove()
-    #     ax_2d.clear()
-    #     print("Point : {:s}".format(sub_car_locs[0]))
-    #     sub_car_locs[0] = Point(sub_car_locs[0].x + delta, sub_car_locs[0].y)
-    #     car_pot.update_obst_plgn(sub_car_locs, json_params)
-    #     z = car_pot.update_car_pot(pos_meshgrid,json_params)
-    #     surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
-    #     # Plot obstacle polygons
-    #     [ax_2d.plot(np.asarray(loc)[1],np.asarray(loc)[0],marker='o') for loc in sub_car_locs]
-    #     [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
+        # Plot Nearest point to obstable
+        [ax_2d.plot([shapely.ops.nearest_points(ego_car_loc,plgn)[0].x,shapely.ops.nearest_points(ego_car_loc,poly)[1].x],
+                [shapely.ops.nearest_points(ego_car_loc,plgn)[0].y,shapely.ops.nearest_points(ego_car_loc,poly)[1].y]) for poly in car_pot.plgn_list]
+     
+       
+        # Plot potential field as a 3d surface plot`
+        print("Shape of Meshgrid: {:s} - {:s} - {:s}".format(pos_meshgrid[0].shape,pos_meshgrid[1].shape,z.shape))
+        surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
+        fig_3d.colorbar(surf, shrink=0.5, aspect=5)
 
-    #     fig_3d.canvas.draw()
-    #     fig_2d.canvas.draw()
-    #     ax_2d.set_xlim(xlims[0],xlims[1])
-    #     ax_2d.set_ylim(ylims[0],ylims[1])
+        ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Risk Map")
+
+        #Set axes limits of all plots
+        ax_2d.set_xlim(xlims[0],xlims[1])
+        ax_2d.set_ylim(ylims[0],ylims[1])
+        ax_3d.set_xlim(xlims[0],xlims[1])
+        ax_3d.set_ylim(ylims[0],ylims[1])
+        ax_3d.set_zlim(zlims[0],zlims[1])
+
+            
+        # print("Update plot with latest values")
+        # for delta in np.linspace(0, 10, 50):
+        #     surf.remove()
+        #     ax_2d.clear()
+        #     print("Point : {:s}".format(sub_car_locs[0]))
+        #     sub_car_locs[0] = Point(sub_car_locs[0].x, sub_car_locs[0].y)
+        #     car_pot.update_obst_plgn(sub_car_locs, json_params)
+        #     z = car_pot.update_car_pot(pos_meshgrid,json_params)
+        #     surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
+        #     # Plot obstacle polygons
+        #     [ax_2d.plot(np.asarray(loc)[0],np.asarray(loc)[1],marker='o') for loc in sub_car_locs]
+        #     [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
+
+        #     fig_3d.canvas.draw()
+        #     fig_2d.canvas.draw()
+        #     ax_2d.set_xlim(xlims[0],xlims[1])
+        #     ax_2d.set_ylim(ylims[0],ylims[1])
+            
         
-    
-    fig_3d.canvas.draw()
-    fig_2d.canvas.draw()
-    raw_input("Press Enter to continue...")
+        fig_3d.canvas.draw()
+        fig_2d.canvas.draw()
+        raw_input("Press Enter to continue...")
+
+    plot_all(z)
 
 
 if __name__ == '__main__':

@@ -1,8 +1,12 @@
 {
 	"Yukawa_Acar":10.0,
 	"Yukawa_alpha":0.5,
-	"Obstacle_W":2.0,
-	"Obstacle_L":4.0,
+	"Obstacle_W":1.5,
+	"Obstacle_L":3.0,
 	"X_limit":[-20,20],
-	"Y_limit":[-40,40]
-}
+	"Y_limit":[-20,20],
+	"delta_vertex":-0.5,
+	"d_zero":20.0,
+	"Tf":3.0,
+	"beta":0.6
+} 

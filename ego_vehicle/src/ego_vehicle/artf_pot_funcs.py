@@ -93,9 +93,11 @@ class CarPotential(object):
                 return yukawa_pot(json_params,Kd)
         else:
             # print("Polygon exterior coords: {:s}".format(list(plgn.exterior.coords)))     
-            triang_vertex = (plgn.bounds[0]+1, plgn.bounds[1]-10)    
+            triang_vertex = (plgn.bounds[0]+(json_params["Obstacle_W"]/2.0),
+                             plgn.bounds[1]+(json_params["delta_vertex"]*(np.clip(float(1.0)/self.vel_scale(40,30,json_params),1,10))))    
             new_plgn = list(plgn.exterior.coords)
             new_plgn.insert(-1,triang_vertex)
+            # print("New polygon vertices{:s}".format(new_plgn))
             plgn = Polygon(new_plgn)
             
             if plgn.contains(Point(x,y)):
@@ -103,6 +105,16 @@ class CarPotential(object):
             else:
                 Kd = plgn.boundary.distance(Point(x,y))
                 return yukawa_pot(json_params,Kd)
+
+    def vel_scale(self, vel_ego, vel_obstcar, json_params):
+
+        if vel_ego >= json_params["d_zero"]/json_params["Tf"]: psi_zero = json_params["d_zero"]/(json_params["Tf"]*vel_ego)
+        else: psi_zero = 1.0
+        # print("Psi value:{:f}".format(psi_zero))
+        if vel_ego > vel_obstcar: psi = psi_zero * np.exp(-json_params["beta"]*(vel_ego-vel_obstcar))
+        else: psi = psi_zero 
+        print("Psi value:{:f}".format(psi))
+        return psi
 
     def update_car_pot(self, pos_meshgrid, json_params):
         """

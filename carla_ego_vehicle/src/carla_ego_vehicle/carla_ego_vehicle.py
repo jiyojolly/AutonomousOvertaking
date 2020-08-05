@@ -73,7 +73,7 @@ class CarlaEgoVehicle(object):
             quat = quaternion_from_euler(
                 math.radians(float(spawn_point[3])),
                 math.radians(float(spawn_point[4])),
-                math.radians(float(spawn_point[5])))
+                math.radians(-float(spawn_point[5])))
             pose.orientation.x = quat[0]
             pose.orientation.y = quat[1]
             pose.orientation.z = quat[2]
