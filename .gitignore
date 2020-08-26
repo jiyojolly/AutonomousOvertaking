@@ -4,3 +4,7 @@ __pycache__/
 
 #Screen capture
 _out/
+#MATLAB related
+MATLAB_models/slprj/
+*.slx.autosave
+*.slxc

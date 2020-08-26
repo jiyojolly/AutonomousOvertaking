@@ -1,123 +1,101 @@
-import artf_pot_funcs
-from artf_pot_funcs import CarPotential
-import os
-import json
 import numpy as np
-from shapely.geometry import Polygon, LineString, Point, box, asPoint
-import shapely.ops
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import carla
+import transforms3d
 
-# You probably won't need this if you're embedding things in a tkinter plot...
-plt.ion()
+def carla_vec2numpy(vec):
+    return np.array([vec.x, vec.y, vec.z])
+
+
+def transform2mat(t):
+    #
+    xyz = carla_vec2numpy(t.location)
+    xyz = np.array([xyz[0], -xyz[1], xyz[2]])
+    roll = -t.rotation.roll
+    pitch = t.rotation.pitch    
+    yaw = -t.rotation.yaw
+    R = transforms3d.taitbryan.euler2mat( 
+        np.deg2rad(yaw), np.deg2rad(pitch), np.deg2rad(roll))
+
+    M = np.zeros((4, 4))
+    M[0:3, 0:3] = R
+    M[0:3, 3] = xyz
+    M[3, 3] = 1
+
+    return M
+
+
+def mat2transform(M):
+
+    pitch, roll, yaw = transforms3d.taitbryan.mat2euler(M[0:3, 0:3])
+    roll = np.rad2deg(roll)
+    pitch = np.rad2deg(pitch)
+    yaw = np.rad2deg(yaw)
+
+    T = carla.Transform(
+        carla.Location(x=M[0, 3], y=-M[1, 3], z=M[2, 3]),
+        carla.Rotation(pitch=pitch, yaw=-yaw, roll=-roll),
+    )
+
+    return T
+
+
+def relative_transform(source, target):
+    source_t = transform2mat(source)
+    target_t = transform2mat(target)
+    source_t_inv = np.linalg.inv(source_t)
+
+    relative_transform_mat = np.dot(target_t, source_t_inv)
+
+    relative_transform_transform = mat2transform(relative_transform_mat)
+
+    return relative_transform_transform
+
+def switch_CoordinateSystem(xyz):
+    xyz[1] = -xyz[1]
+    return xyz
+
+def transform_location(loc, target_transform):
+
+    loc = switch_CoordinateSystem(loc)
+    T = transform2mat(target_transform)
+    return switch_CoordinateSystem(np.dot(np.linalg.inv(T), loc))
+
+
 
 def main():
-    # Read params from file
-    param_definition_file = "/home/jiyo/workspace/autonomous-overtaking/autonomous-overtaking/ego_vehicle/config/params.json"
-    if not os.path.exists(param_definition_file):
-        raise RuntimeError(
-            "Could not read param-definition from {}".format(param_definition_file))
-    json_params = None
-    with open(param_definition_file) as handle:
-        json_params = json.loads(handle.read())
 
-    # Add fig and axes for contour and 3d surface plots
-    fig_3d = plt.figure()
-    ax_3d = fig_3d.add_subplot(111, projection='3d')
+    #Input transform A
+    T_a = carla.Transform(
+        carla.Location(1, 1, 0), carla.Rotation(pitch=0, yaw=90, roll=0)
+    )
 
-    fig_2d = plt.figure()
-    ax_2d = fig_2d.add_subplot(111)
+    # Location in left handed coordinates
+    loc = switch_CoordinateSystem(np.array([1, 1, 0, 1]))
 
-    # Define X, Y, Z limits for plots
-    xlims = np.array(np.array([-50,50]))
-    ylims = np.array([-50,50])
-    zlims = np.array([0,30])
+    # #Input transform B
+    # T_b = carla.Transform(
+    #     carla.Location(1, 1, 1), carla.Rotation(pitch=0, yaw=90, roll=0)
+    # )
 
-    # Define X, Y limits for area under consideration
-    x_vision_limit = np.array(json_params["X_limit"])
-    y_vision_limit = np.array(json_params["Y_limit"])
+    # #Compute relative transform
+    # T_a2b = relative_transform(T_a, T_b)
 
+    #Convert to a 4x4 matrix
+    T_a_mat = transform2mat(T_a)
 
-    
-    #TO DO Convert position (x,y) to Point objects
+    T_a_back = mat2transform(T_a_mat)
 
-    # Dummy ego car postion Point(x,y)
-    ego_car_loc = Point([-5,-10])
-    print(ego_car_loc.x)
-    ax_2d.plot(np.asarray(ego_car_loc)[0], np.asarray(ego_car_loc)[1], marker='x')
+    #Transform T_a to T_b using numpy
+    T_a_loc_np = switch_CoordinateSystem(np.dot(np.linalg.inv(T_a_mat), loc))
 
-    # Dummy subject car #1 postion  
-    sub_car_locs = [Point(-10,-1), Point(0,3), Point(10,8)]
-    # sub_car_locs = [Point(5,1)]
-    [ax_2d.plot(np.asarray(loc)[0], np.asarray(loc)[1], marker='o') for loc in sub_car_locs]
+    # #Transform T_a to T_b using carla 
+    # T_b_prime = T_a2b.transform(T_a.location)
+
+    #Expect both outputs to be -1, 6, 2
+    print("T_a_mat", T_a_mat) # [-0.99999987  5.99999998  1.99999998  1.] - ~Correc
+    print("T_a_loc_np", T_a_loc_np) # [-0.99999987  5.99999998  1.99999998  1.] - ~Correct 
+    print("", )
 
 
-    # Create car potential class
-    car_pot = CarPotential()
-    
-    car_pot.update_obst_plgn(sub_car_locs, json_params)   
-
-    # Create mesh for potential calculation
-    x = np.arange(x_vision_limit[0],x_vision_limit[1], 0.2)
-    y = np.arange(y_vision_limit[0],y_vision_limit[1], 0.2)
-    pos_meshgrid = np.meshgrid(x, y, sparse=True)
-
-    z = car_pot.update_car_pot(pos_meshgrid,json_params)  
-    
-     # Print min max of pot field
-    print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
-
-    def plot_all(z):
-        # Plot obstacle polygons
-        [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
-        
-        # Plot Nearest point to obstable
-        [ax_2d.plot([shapely.ops.nearest_points(ego_car_loc,plgn)[0].x,shapely.ops.nearest_points(ego_car_loc,poly)[1].x],
-                [shapely.ops.nearest_points(ego_car_loc,plgn)[0].y,shapely.ops.nearest_points(ego_car_loc,poly)[1].y]) for poly in car_pot.plgn_list]
-     
-       
-        # Plot potential field as a 3d surface plot`
-        print("Shape of Meshgrid: {:s} - {:s} - {:s}".format(pos_meshgrid[0].shape,pos_meshgrid[1].shape,z.shape))
-        surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
-        fig_3d.colorbar(surf, shrink=0.5, aspect=5)
-
-        ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Risk Map")
-
-        #Set axes limits of all plots
-        ax_2d.set_xlim(xlims[0],xlims[1])
-        ax_2d.set_ylim(ylims[0],ylims[1])
-        ax_3d.set_xlim(xlims[0],xlims[1])
-        ax_3d.set_ylim(ylims[0],ylims[1])
-        ax_3d.set_zlim(zlims[0],zlims[1])
-
-            
-        # print("Update plot with latest values")
-        # for delta in np.linspace(0, 10, 50):
-        #     surf.remove()
-        #     ax_2d.clear()
-        #     print("Point : {:s}".format(sub_car_locs[0]))
-        #     sub_car_locs[0] = Point(sub_car_locs[0].x, sub_car_locs[0].y)
-        #     car_pot.update_obst_plgn(sub_car_locs, json_params)
-        #     z = car_pot.update_car_pot(pos_meshgrid,json_params)
-        #     surf = ax_3d.plot_surface(pos_meshgrid[0], pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0)
-        #     # Plot obstacle polygons
-        #     [ax_2d.plot(np.asarray(loc)[0],np.asarray(loc)[1],marker='o') for loc in sub_car_locs]
-        #     [ax_2d.plot(np.asarray(plgn.boundary)[:,0],np.asarray(plgn.boundary)[:,1]) for plgn in car_pot.plgn_list]
-
-        #     fig_3d.canvas.draw()
-        #     fig_2d.canvas.draw()
-        #     ax_2d.set_xlim(xlims[0],xlims[1])
-        #     ax_2d.set_ylim(ylims[0],ylims[1])
-            
-        
-        fig_3d.canvas.draw()
-        fig_2d.canvas.draw()
-        raw_input("Press Enter to continue...")
-
-    plot_all(z)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
-

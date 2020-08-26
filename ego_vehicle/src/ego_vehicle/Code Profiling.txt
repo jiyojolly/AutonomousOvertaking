@@ -1,0 +1,90 @@
+19th Aug 2020
+
+
+Timer unit: 1e-06 s
+
+Total time: 0.169238 s
+File: artf_pot_funcs.py
+Function: yukawa_pot at line 17
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    17                                           @profile
+    18                                           def yukawa_pot(json_params, Kd):
+    19                                               """
+    20                                               Returns the Yukawa potential value corresponding 
+    21                                               to distance Kd from he obstacle
+    22                                               Args:
+    23                                                   json_params (json List): Parameter list
+    24                                                   Kd (float): Pseudo-Distance 
+    25                                               Returns:
+    26                                                   (float): Yukawa potential field value at Kd distance
+    27                                           
+    28                                               """
+    29     19158     162736.0      8.5     96.2      U = np.multiply(json_params["Yukawa_Acar"],np.divide(np.exp(-1*json_params["Yukawa_alpha"]*Kd),Kd))
+    30     19158       6502.0      0.3      3.8      return U
+
+Total time: 2.94829 s
+File: artf_pot_funcs.py
+Function: eval_car_pot at line 80
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    80                                               @profile       
+    81                                               def eval_car_pot(self, x, y, obst_car, json_params):
+    82                                                   """
+    83                                                   Calculate car potential for a single (obstacle) 
+    84                                                   Args:
+    85                                                       x (float): x coordinate of a position
+    86                                                       y (float): x coordinate of a position
+    87                                                       plgn (Shapely Polygon Object): Polygon object representing obstacle
+    88                                                       json_params (JSON Dictionary Object): Parameters Object   
+    89                                                   Returns:
+    90                                                       (float): Potential field value due to obstacle
+    91                                                   """
+    92                                                   # Check if point inside obstacle polygon then return max pot
+    93     19203     888299.0     46.3     30.1          if Polygon(obst_car[0]).contains(Point(x,y)):
+    94        45         25.0      0.6      0.0              return 20.0
+    95                                                   else:
+    96                                                       # Check point behind vehicle
+    97     19158     356643.0     18.6     12.1              if y >= obst_car[0].coords[0][1]:
+    98      8675     279960.0     32.3      9.5                  Kd = obst_car[0].distance(Point(x,y))
+    99      8675     104445.0     12.0      3.5                  return yukawa_pot(json_params,Kd)
+   100                                                       else:
+   101                                                           # If point in the sides or in front of vehicle
+   102                                                           # print("Polygon exterior coords: {:s}".format(list(plgn.exterior.coords)))     
+   103     10483     164558.0     15.7      5.6                  triang_vertex = (obst_car[0].coords[0][0]+(json_params["Obstacle_W"]/2.0),
+   104     10483     278694.0     26.6      9.5                                   obst_car[0].coords[0][1]+(json_params["delta_vertex"]*(np.clip(float(1.0)/self.vel_scale(self.ego_car[1],obst_car[1],json_params),1,10))))    
+   105     10483     178836.0     17.1      6.1                  new_plgn = list(obst_car[0].coords)
+   106     10483       9460.0      0.9      0.3                  new_plgn.insert(-1,triang_vertex)
+   107                                                           # print("New polygon vertexes{:s}".format(new_plgn))
+   108     10483     151932.0     14.5      5.2                  mod_plgn = LinearRing(new_plgn)
+   109     10483     401305.0     38.3     13.6                  Kd = mod_plgn.distance(Point(x,y))
+   110     10483     134136.0     12.8      4.5                  return yukawa_pot(json_params,Kd)
+
+Total time: 3.17771 s
+File: artf_pot_funcs.py
+Function: update_car_pot at line 122
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   122                                               @profile
+   123                                               def update_car_pot(self, pos_meshgrid, json_params):
+   124                                                   """
+   125                                                   Calculate car potential for a single (obstacle) 
+   126                                                   Args:
+   127                                                       x (float): x coordinate of a position
+   128                                                       y (float): x coordinate of a position
+   129                                                       poly (Shapely Polygon Object): Polygon object representing obstacle
+   130                                                       json_params (JSON Dictionary Object): Parameters Object   
+   131                                                   Returns:
+   132                                                       (float): Potential field value due to obstable
+   133                                                   """
+   134                                           
+   135                                                   # Vectorize and evaluate potential for mesh grid
+   136         1          3.0      3.0      0.0          func = lambda obst_car : np.vectorize(self.eval_car_pot, excluded=['obst_car'])(x=pos_meshgrid[0], y=pos_meshgrid[1], obst_car=obst_car, json_params=json_params)
+   137         4    3177627.0 794406.8    100.0          car_z = [func(obst_car) for obst_car in self.obst_car_list]
+   138                                                   # car_z = Parallel(n_jobs=4)(delayed(func)(obst_car) for obst_car in self.obst_car_list)
+   139                                                   # temp = self.plgn_list[0]
+   140                                                   # print("What is this?? : {:s}".format(np.asarray(temp)[0]))
+   141         1         79.0     79.0      0.0          return np.clip(np.array(car_z).sum(axis=0),-20,20)

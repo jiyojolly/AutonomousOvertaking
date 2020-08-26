@@ -5,8 +5,13 @@
 	"Obstacle_L":3.0,
 	"X_limit":[-20,20],
 	"Y_limit":[-20,20],
+	"grid_res": 0.5,
 	"delta_vertex":-0.5,
 	"d_zero":20.0,
 	"Tf":3.0,
-	"beta":0.6
+	"beta":0.6,
+
+	"Lane_Alane":2,
+	"Lane_widthfactor":0.15,
+	"Road_scale_factor":3
 } 
