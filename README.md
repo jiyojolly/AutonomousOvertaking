@@ -17,13 +17,19 @@ Setup Instructions
 5. Create a symlink to the git repo in the src folder of the catkin workspace
     `$ ln -s /path/to/repo /path/to/src`
 6. Install required ros-dependencies
-    `$ rosdep update`
-    `$ rosdep install --from-paths src --ignore-src -r`
+   
+*   `$ rosdep update`
+   
+*   `$ rosdep install --from-paths src --ignore-src -r`
 7. Install required python packages using pip ( Source code is written in Python 2, hence python 2 packages are required)
-    Numpy - `$ pip2 install numpy`
-    Shapely - `$ pip2 install Shapely`
-    Matplotlib - `$ pip2 install matplotlib`
-    Joblib - `$ pip install joblib`
+    
+*  Numpy - `$ pip2 install numpy`
+    
+*  Shapely - `$ pip2 install Shapely`
+   
+*   Matplotlib - `$ pip2 install matplotlib`
+   
+*   Joblib - `$ pip install joblib`
 8.Build using catkin build
     `$ catkin build`
 9. Source devel files 
