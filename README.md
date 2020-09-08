@@ -18,12 +18,12 @@ Setup Instructions
     `$ ln -s /path/to/repo /path/to/src`
 6. Install required ros-dependencies
    
-**   `$ rosdep update`
+    *   `$ rosdep update`
    
-*   `$ rosdep install --from-paths src --ignore-src -r`
+    *   `$ rosdep install --from-paths src --ignore-src -r`
 7. Install required python packages using pip ( Source code is written in Python 2, hence python 2 packages are required)
     
-*  Numpy - `$ pip2 install numpy`
+    *  Numpy - `$ pip2 install numpy`
     
 *  Shapely - `$ pip2 install Shapely`
    
