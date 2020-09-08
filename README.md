@@ -30,7 +30,7 @@ Setup Instructions
     *   Matplotlib - `$ pip2 install matplotlib`
    
     *   Joblib - `$ pip install joblib`
-8.Build using catkin build
+8. Build using catkin build
     `$ catkin build`
 9. Source devel files 
     `$ source devel/setup.bash`
