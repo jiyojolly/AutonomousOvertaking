@@ -125,7 +125,7 @@ class EgoVehicle(CarlaEgoVehicle):
         # Update plot ...
         self.plot_all(z)
 
-    def select_target(self):
+    # def select_target(self):
         
 
         
@@ -172,7 +172,7 @@ class EgoVehicle(CarlaEgoVehicle):
         
         # self.fig_3d.canvas.draw()
         self.fig_2d.canvas.draw()
-        # raw_input("Press Enter to continue...")
+        raw_input("Press Enter to continue...")
 
 
     def get_subvehicles(self):

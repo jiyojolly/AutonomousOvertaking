@@ -1,0 +1,4 @@
+[submodule "ros-carla-msgs"]
+	path = carla-msgs
+	url = https://github.com/carla-simulator/ros-carla-msgs.git
+	branch = master
