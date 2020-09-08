@@ -25,11 +25,11 @@ Setup Instructions
     
     *  Numpy - `$ pip2 install numpy`
     
-*  Shapely - `$ pip2 install Shapely`
+    *  Shapely - `$ pip2 install Shapely`
    
-*   Matplotlib - `$ pip2 install matplotlib`
+    *   Matplotlib - `$ pip2 install matplotlib`
    
-*   Joblib - `$ pip install joblib`
+    *   Joblib - `$ pip install joblib`
 8.Build using catkin build
     `$ catkin build`
 9. Source devel files 
