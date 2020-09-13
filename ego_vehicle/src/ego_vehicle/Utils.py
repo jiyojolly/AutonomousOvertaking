@@ -220,3 +220,7 @@ def transform_location_L(loc, target_transform, inv = False):
 
     return tr_loc[:-1]
 
+
+def deg360(angle):
+    return abs(angle%360)
+

@@ -71,7 +71,7 @@ class EgoVehicle(CarlaEgoVehicle):
         # Create mesh for potential calculation
         x = np.arange(self.json_params["X_limit"][0],self.json_params["X_limit"][1], self.json_params["grid_res"])
         y = np.arange(self.json_params["Y_limit"][0],self.json_params["Y_limit"][1], self.json_params["grid_res"])
-        self.pos_meshgrid = np.meshgrid(x, y, sparse=True)
+        self.pos_meshgrid = np.meshgrid(x, y, sparse=False)
 
         # Create car potential class
         self.car_potential = CarPotential()
@@ -85,6 +85,7 @@ class EgoVehicle(CarlaEgoVehicle):
 
         self.fig_2d = plt.figure()
         self.ax_2d = self.fig_2d.add_subplot(111)
+        self.ax_2d.set(xlabel="x (Ego Vehicle Frame)", ylabel="y (Ego Vehicle Frame)", title="View from the top")
         self.surf = None
         # # Define X, Y, Z limits for plots
         # xlims = np.array([-50,50])
@@ -103,7 +104,7 @@ class EgoVehicle(CarlaEgoVehicle):
 
         #Update Lane edges
         curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
-        self.lane_potential.update_state(curr_waypoint)
+        self.lane_potential.update_state(curr_waypoint, self.player.get_transform())
         # self.lane_edges = Utils.getLaneEdges(curr_waypoint) 
         
          
@@ -121,12 +122,16 @@ class EgoVehicle(CarlaEgoVehicle):
         # #Update Road, Lane potentials   
         z = z + self.lane_potential.update(self.pos_meshgrid, self.json_params)
 
-        z = np.clip(z,-20,20) 
-        # Update plot ...
-        self.plot_all(z)
-
-    # def select_target(self):
+        self.z = np.clip(z,-20,20) 
         
+        self.select_target()
+
+        # Update plot ...
+        self.plot_all(self.z)
+
+    def select_target(self):
+        self.L = self.z < 8
+        self.L = [self.pos_meshgrid[0][self.L], self.pos_meshgrid[1][self.L]]
 
         
 
@@ -135,11 +140,9 @@ class EgoVehicle(CarlaEgoVehicle):
         #Clear previous plots
         if self.surf is not None: self.surf.remove()
         if self.ax_2d is not None: self.ax_2d.clear()
-        
+        self.ax_2d.set(xlabel="x (Ego Vehicle Frame)", ylabel="y (Ego Vehicle Frame)", title="View from the top")
         # Plot lane markings
-        # curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
-        # self.lane_edges = Utils.getLaneEdges(curr_waypoint)
-        # self.ax_2d.plot(np.asarray(self.lane_edges)[:,0]-self.ego_car_loc.x, np.asarray(self.lane_edges)[:,1]-self.ego_car_loc.y, marker='*')
+        [self.ax_2d.plot(lane[0], lane[1], marker='+') for lane in self.lane_potential.lane_edges_transformed]
 
         #Plot ego vehicle and its polygon
         self.ax_2d.plot(self.car_potential.ego_car_location[0], self.car_potential.ego_car_location[1], marker='x')
@@ -156,15 +159,17 @@ class EgoVehicle(CarlaEgoVehicle):
                          [shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].y, 
                             shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
 
-       
+        #Plot Reachable / safe set
+        self.ax_2d.scatter(self.L[0], self.L[1], marker='.', color='c')
+
         # Plot potential field as a 3d surface plot
         self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
         # Print min max of pot field
         print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
 
         # #Set axes limits of all plots
-        # self.ax_2d.set_xlim(-30,30)
-        # self.ax_2d.set_ylim(-30,30)
+        self.ax_2d.set_xlim(-30,30)
+        self.ax_2d.set_ylim(-30,30)
         # ax_3d.set_xlim(xlims[0],xlims[1])
         # ax_3d.set_ylim(ylims[0],ylims[1])
         # ax_3d.set_zlim(zlims[0],zlims[1])
@@ -172,7 +177,7 @@ class EgoVehicle(CarlaEgoVehicle):
         
         # self.fig_3d.canvas.draw()
         self.fig_2d.canvas.draw()
-        raw_input("Press Enter to continue...")
+        # raw_input("Press Enter to continue...")
 
 
     def get_subvehicles(self):

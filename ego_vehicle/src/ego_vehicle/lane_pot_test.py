@@ -57,14 +57,16 @@ def main():
     #Calculate Road potential 
     U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
                             np.divide(1.0,(yy-lanes[0][1])**2))
+    U = np.where(yy>lanes[0][1], U, 20)
     U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
                             np.divide(1.0,(yy-lanes[-1][1])**2))
+    U = np.where(yy<lanes[-1][1], U, 20)
 
-    #Calculate lane potential
-    for i,lane in enumerate(lanes[1:-1]):
-        U = U + np.multiply(json_params["Lane_Alane"], 
-                            np.exp(-np.divide((yy-lane[1])**2, 
-                            (2 * (json_params["Lane_widthfactor"]*abs(lanes[i+1][1]-lanes[i][1]))**2))))
+    # #Calculate lane potential
+    # for i,lane in enumerate(lanes[1:-1]):
+    #     U = U + np.multiply(json_params["Lane_Alane"], 
+    #                         np.exp(-np.divide((yy-lane[1])**2, 
+    #                         (2 * (json_params["Lane_widthfactor"]*abs(lanes[i+1][1]-lanes[i][1]))**2))))
 
      
     surf = ax_3d.plot_surface(xx,yy, U,

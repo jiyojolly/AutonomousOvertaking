@@ -183,7 +183,7 @@ class CarPotential(object):
         # car_z = Parallel(n_jobs=4)(delayed(func)(obstcl_vehicle) for obstcl_vehicle in self.obstcl_vehicles_plgns)
         # temp = self.plgn_list[0]
         # print("What is this?? : {:s}".format(np.asarray(temp)[0]))
-        return np.clip(np.array(car_z).sum(axis=0),-20,20)
+        return np.array(car_z).sum(axis=0)
 
 
 class LanePotential(object):
@@ -192,11 +192,16 @@ class LanePotential(object):
         super(LanePotential, self).__init__()
         self.lane_edges_transformed = []
         self.curr_waypoint = None
+        self.ego_transform = None
 
-    def update_state(self, curr_waypoint):
+    def update_state(self, curr_waypoint, ego_transform):
         self.curr_waypoint = curr_waypoint
+        self.ego_transform = ego_transform
         lane_edges = Utils.getLaneEdges(curr_waypoint)
-        self.lane_edges_transformed = [Utils.transform_location_R(np.array([lane_edge[0], lane_edge[1], 0]), self.curr_waypoint.transform)[:-1]  for lane_edge in lane_edges]
+        self.lane_edges_transformed = [Utils.transform_location_R(np.array([lane_edge[0], lane_edge[1], 0]),
+                                        ego_transform)[:-1]  for lane_edge in lane_edges]
+        # print("Lane Edges: {:s}").format(lane_edges)
+        # print("Lane Edges Transformed: {:s}").format(self.lane_edges_transformed)
 
     def update(self, pos_meshgrid, json_params):
         """
@@ -212,20 +217,35 @@ class LanePotential(object):
 
         # print(self.lane_edges_transformed)
         U = np.zeros(pos_meshgrid[1].shape)  
-
+        # print("Ego yaw: {:f}").format(Utils.deg360(self.ego_transform.rotation.yaw))
+        # print("Waypoint yaw: {:f}").format(Utils.deg360(self.curr_waypoint.transform.rotation.yaw))
+        theta = -(Utils.deg360(-self.ego_transform.rotation.yaw) - Utils.deg360(-self.curr_waypoint.transform.rotation.yaw))*np.pi/180
+        # theta = 0.0
+        # print("The angle between: {:f}").format(theta*180/np.pi)
         #Calculate Road potential 
+        # if theta < (np.pi/2) and theta > -(np.pi/2): 
         U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
-                                np.divide(1.0,(pos_meshgrid[1]-self.lane_edges_transformed[0][1])**2))
-        U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
-                                np.divide(1.0,(pos_meshgrid[1]-self.lane_edges_transformed[-1][1])**2))
+                            np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[0][0])+
+                                                    (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[0][1]))))))
 
+        U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
+                            np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[-1][0])+
+                                                    (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[-1][1]))))))
+        mask1 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) > (np.sin(theta)*self.lane_edges_transformed[0][0] + np.cos(theta)*self.lane_edges_transformed[0][1])) 
+        mask2 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) < (np.sin(theta)*self.lane_edges_transformed[-1][0] + np.cos(theta)*self.lane_edges_transformed[-1][1]))
+        # print(mask1.shape)
+        # print(mask2.shape)
+        mask = mask1&mask2
+        U = np.where(mask, U, 20)
+        
         #Calculate lane potential
         for i,lane in enumerate(self.lane_edges_transformed[1:-1]):
             U = U + np.multiply(json_params["Lane_Alane"], 
-                                np.exp(-np.divide((pos_meshgrid[1]-lane[1])**2, 
-                                (2 * (json_params["Lane_widthfactor"]*abs(self.lane_edges_transformed[i+1][1]-self.lane_edges_transformed[i][1]))**2))))
+                                np.exp(-np.divide(((np.sin(theta)*pos_meshgrid[1])+(np.cos(theta)*pos_meshgrid[0])-(np.sin(theta)*lane[0] + np.cos(theta)*lane[1]))**2, 
+                                (2 * (json_params["Lane_widthfactor"]*abs((np.sin(theta)*self.lane_edges_transformed[i+1][0] + np.cos(theta)*self.lane_edges_transformed[i][1])-
+                                                                            (np.sin(theta)*self.lane_edges_transformed[i][0] + np.cos(theta)*self.lane_edges_transformed[i][1])))**2))))
 
-        return np.clip(U, -20, 20)
+        return U
 
 
 
