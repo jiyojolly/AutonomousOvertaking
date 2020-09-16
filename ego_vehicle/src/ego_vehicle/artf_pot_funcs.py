@@ -256,8 +256,8 @@ class ReachableSet(object):
         self.ax_max = json_params["ax_max"]
         self.delta_max = json_params["delta_max"]
         self.v_des = json_params["v_des"]/3.6     # Convert to m/s 
-        self.delta_t = 0.1 # time step size (seconds)
-        self.t_max = 2 # max sim time (seconds)
+        self.delta_t = json_params["delta_t"] # time step size (seconds)
+        self.t_max = json_params["t_reach_horizon"] # max sim time (seconds)
         self.t = np.linspace(0, self.t_max, self.t_max/self.delta_t)
         self.reach_set = None
 
