@@ -13,5 +13,10 @@
 
 	"Lane_Alane":2,
 	"Lane_widthfactor":0.15,
-	"Road_scale_factor":3
+	"Road_scale_factor":3,
+
+	"v_des": 30,
+	"ax_max": 2.88, 
+	"delta_max": 0.523
+
 } 

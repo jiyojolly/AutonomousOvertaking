@@ -10,12 +10,14 @@ Functions for generating artificial potential fields
 
 """
 import numpy as np
+from scipy import integrate
 from shapely.geometry import LineString, Polygon, LinearRing, Point, box, asPoint
 import shapely.ops
 from joblib import Parallel, delayed
 import Utils
 import math
 import rospy
+from kinematic_bicycle_model import bicycle_model
 import carla
 
 # @profile
@@ -247,7 +249,64 @@ class LanePotential(object):
 
         return U
 
+class ReachableSet(object):
+    """docstring for ReachableSet"""
+    def __init__(self, json_params):
+        super(ReachableSet, self).__init__()
+        self.ax_max = json_params["ax_max"]
+        self.delta_max = json_params["delta_max"]
+        self.v_des = json_params["v_des"]/3.6     # Convert to m/s 
+        self.delta_t = 0.1 # time step size (seconds)
+        self.t_max = 2 # max sim time (seconds)
+        self.t = np.linspace(0, self.t_max, self.t_max/self.delta_t)
+        self.reach_set = None
 
+        
+    def update(self, ego_car):
+
+        def generate_reachset(t, x_init, a_max, delta_max, v_des = 5.0, v_des_enable = True):
+
+            dx_vals_int_1 = integrate.odeint(bicycle_model, x_init, t, args=(np.array([a_max, delta_max]),))
+            dx_vals_int_2 = integrate.odeint(bicycle_model, x_init, t, args=(np.array([a_max, -delta_max]),))
+        
+            # Find Points where velocity exceeds
+            idx = np.where(dx_vals_int_2[:,3]>v_des)
+            # print(idx)
+            if idx[0].size == 0 or (not v_des_enable):
+                v_max_idx = None
+            else: 
+                v_max_idx = idx[0][0]
+
+            edge_points = []
+            for x in list(np.linspace(-1,1,18)):
+                dx_vals_int = integrate.odeint(bicycle_model, x_init, t, args=(np.array([a_max, x*delta_max]),))
+                if v_max_idx is None:
+                    edge_points.append((dx_vals_int[-1,0],dx_vals_int[-1,1]))
+                else:
+                    edge_points.append((dx_vals_int[v_max_idx,0],dx_vals_int[v_max_idx,1]))
+      
+            
+            # print(v_max_idx)
+            reach_set_tup1 = zip(dx_vals_int_1[:v_max_idx, 0],dx_vals_int_1[:v_max_idx, 1])
+            reach_set_tup2 = zip(dx_vals_int_2[:v_max_idx, 0],dx_vals_int_2[:v_max_idx, 1])
+            reach_set_tup1.reverse()
+            reach_set_tup1.extend(reach_set_tup2)
+            reach_set_tup1.extend(edge_points)
+
+            if v_max_idx == 0:
+                rospy.logwarn("Warning!! No reachable states that obey velocity limits. Desired Speed: {:f} km/h".format(v_des*3.6))
+                print(reach_set_tup1)
+
+            return reach_set_tup1
+
+        v = ego_car.get_velocity()
+        self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
+        x_0 = np.array([0.0,0.0,0.0, self.ego_car_vel])
+        
+        
+        
+        reach_set_tup1 = generate_reachset(self.t, x_0, self.ax_max, self.delta_max, v_des=self.v_des)
+        self.reach_set = LinearRing(reach_set_tup1)
 
 
 

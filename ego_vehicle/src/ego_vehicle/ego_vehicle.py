@@ -36,7 +36,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 import artf_pot_funcs
-from artf_pot_funcs import CarPotential, LanePotential
+from artf_pot_funcs import CarPotential, LanePotential, ReachableSet
 import Utils
 
 # You probably won't need this if you're embedding things in a tkinter plot...
@@ -76,6 +76,7 @@ class EgoVehicle(CarlaEgoVehicle):
         # Create car potential class
         self.car_potential = CarPotential()
         self.lane_potential = LanePotential()
+        self.reach_set = ReachableSet(self.json_params)
 
         # Plotting variables
         # Add fig and axes for contour and 3d surface plots
@@ -124,14 +125,24 @@ class EgoVehicle(CarlaEgoVehicle):
 
         self.z = np.clip(z,-20,20) 
         
+        self.reach_set.update(self.player)
         self.select_target()
 
         # Update plot ...
         self.plot_all(self.z)
 
     def select_target(self):
-        self.L = self.z < 8
-        self.L = [self.pos_meshgrid[0][self.L], self.pos_meshgrid[1][self.L]]
+        mask_safe = self.z < 8
+        # print("Safe mask shape: {:s}").format(mask_safe.shape)
+        self.L_safe = [self.pos_meshgrid[0][mask_safe], self.pos_meshgrid[1][mask_safe]]
+        # print("L Safe shape: {:s}").format(self.L_safe[0].shape)
+        func = lambda x,y : Polygon(self.reach_set.reach_set).contains(Point(x, y))
+        vfunc = np.vectorize(func) 
+        mask_safe_reach = vfunc(self.L_safe[0], self.L_safe[1])
+        # print("Safe, Reachable mask shape: {:s}").format(mask_safe_reach.shape)
+        self.L_safe_reach = [self.L_safe[0][mask_safe_reach], self.L_safe[1][mask_safe_reach]]
+
+
 
         
 
@@ -160,7 +171,12 @@ class EgoVehicle(CarlaEgoVehicle):
                             shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
 
         #Plot Reachable / safe set
-        self.ax_2d.scatter(self.L[0], self.L[1], marker='.', color='c')
+        self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='c')
+
+        self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1])
+
+        self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='g')
+
 
         # Plot potential field as a 3d surface plot
         self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
