@@ -36,7 +36,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 import artf_pot_funcs
-from artf_pot_funcs import CarPotential, LanePotential, ReachableSet
+from artf_pot_funcs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
 import Utils
 
 # You probably won't need this if you're embedding things in a tkinter plot...
@@ -77,6 +77,7 @@ class EgoVehicle(CarlaEgoVehicle):
         self.car_potential = CarPotential()
         self.lane_potential = LanePotential()
         self.reach_set = ReachableSet(self.json_params)
+        self.target_selection = TargetStateSelection()
 
         # Plotting variables
         # Add fig and axes for contour and 3d surface plots
@@ -106,9 +107,6 @@ class EgoVehicle(CarlaEgoVehicle):
         #Update Lane edges
         curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
         self.lane_potential.update_state(curr_waypoint, self.player.get_transform())
-        # self.lane_edges = Utils.getLaneEdges(curr_waypoint) 
-        
-         
 
 
     def update_pot(self):
@@ -129,7 +127,8 @@ class EgoVehicle(CarlaEgoVehicle):
         self.select_target()
 
         # Update plot ...
-        self.plot_all(self.z)
+        # self.plot_all(self.z, pause=True)
+        self.plot_all(self.z, pause=False)
 
     def select_target(self):
         mask_safe = self.z < 8
@@ -142,11 +141,12 @@ class EgoVehicle(CarlaEgoVehicle):
         # print("Safe, Reachable mask shape: {:s}").format(mask_safe_reach.shape)
         self.L_safe_reach = [self.L_safe[0][mask_safe_reach], self.L_safe[1][mask_safe_reach]]
 
+        #Publish reference state vector that maximizes longitudinal distance travel
+        self.target_selection.update_state(self.player, self.sub_cars, self.L_safe_reach)
+        self.L_safe_reach_max = self.target_selection.update_ref()
 
 
-        
-
-    def plot_all(self, z):
+    def plot_all(self, z, pause=False):
 
         #Clear previous plots
         if self.surf is not None: self.surf.remove()
@@ -177,6 +177,8 @@ class EgoVehicle(CarlaEgoVehicle):
 
         self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='g')
 
+        self.ax_2d.scatter(self.L_safe_reach_max[0], self.L_safe_reach_max[1], marker='x', color='r')
+
 
         # Plot potential field as a 3d surface plot
         self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
@@ -193,7 +195,8 @@ class EgoVehicle(CarlaEgoVehicle):
         
         # self.fig_3d.canvas.draw()
         self.fig_2d.canvas.draw()
-        # raw_input("Press Enter to continue...")
+        if pause:
+            raw_input("Press Enter to continue...")
 
 
     def get_subvehicles(self):

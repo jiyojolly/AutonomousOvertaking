@@ -51,6 +51,7 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>topic_tools</exec_depend>
   <exec_depend>carla_ego_vehicle</exec_depend>
+  <exec_depend>custom_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

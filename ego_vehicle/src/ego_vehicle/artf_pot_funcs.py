@@ -19,6 +19,7 @@ import math
 import rospy
 from kinematic_bicycle_model import bicycle_model
 import carla
+from custom_msgs.msg import Float64Arr4
 
 # @profile
 def yukawa_pot(json_params, Kd):
@@ -222,14 +223,8 @@ class LanePotential(object):
         # print("Ego yaw: {:f}").format(Utils.deg360(self.ego_transform.rotation.yaw))
         # print("Waypoint yaw: {:f}").format(Utils.deg360(self.curr_waypoint.transform.rotation.yaw))
         theta = -(Utils.deg360(-self.ego_transform.rotation.yaw) - Utils.deg360(-self.curr_waypoint.transform.rotation.yaw))*np.pi/180
-        # theta = 0.0
         # print("The angle between: {:f}").format(theta*180/np.pi)
         #Calculate Road potential 
-        # if theta < (np.pi/2) and theta > -(np.pi/2): 
-        U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
-                            np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[0][0])+
-                                                    (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[0][1]))))))
-
         U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
                             np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[-1][0])+
                                                     (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[-1][1]))))))
@@ -243,9 +238,9 @@ class LanePotential(object):
         #Calculate lane potential
         for i,lane in enumerate(self.lane_edges_transformed[1:-1]):
             U = U + np.multiply(json_params["Lane_Alane"], 
-                                np.exp(-np.divide(((np.sin(theta)*pos_meshgrid[1])+(np.cos(theta)*pos_meshgrid[0])-(np.sin(theta)*lane[0] + np.cos(theta)*lane[1]))**2, 
-                                (2 * (json_params["Lane_widthfactor"]*abs((np.sin(theta)*self.lane_edges_transformed[i+1][0] + np.cos(theta)*self.lane_edges_transformed[i][1])-
-                                                                            (np.sin(theta)*self.lane_edges_transformed[i][0] + np.cos(theta)*self.lane_edges_transformed[i][1])))**2))))
+                                np.exp(-np.divide((np.sin(theta)*(pos_meshgrid[0] - lane[0]) + np.cos(theta)*(pos_meshgrid[1] - lane[1]))**2, 
+                                (2 * (json_params["Lane_widthfactor"]*abs(np.sin(theta)*(self.lane_edges_transformed[i+1][0] - self.lane_edges_transformed[i][0]) + 
+                                                                           np.cos(theta)*(self.lane_edges_transformed[i+1][1] - self.lane_edges_transformed[i][1])))**2))))
 
         return U
 
@@ -307,6 +302,53 @@ class ReachableSet(object):
         
         reach_set_tup1 = generate_reachset(self.t, x_0, self.ax_max, self.delta_max, v_des=self.v_des)
         self.reach_set = LinearRing(reach_set_tup1)
+
+
+class TargetStateSelection(object):
+    """Class that holds the functions to select the required target reference state for 
+        MPC. Takes into consideration the nearby cars to choose optimal reference target to 
+        minimize distance to final reference point which could be a 
+        1. Waypoint ahead that car has to follow
+        2. Safe waypoint ahead of the obstacle car infront 
+        3. Safe waypoint behind the obstacle car incase of overtaking maneuver cancellation
+        4. others
+
+        Publishes the optimal(safe, reachable) reference target via ROS topic
+
+    """
+    def __init__(self):
+        super(TargetStateSelection, self).__init__()
+
+        #Initialize publisher
+        self.pub = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
+        
+        #Instance variables
+        self.X_Ref = np.zeros(4)
+        self.ego_car = None
+        self.obstcl_cars = []
+
+
+        
+    def publish(self, X_ref):
+        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
+        data_to_send.data = X_ref # assign the array with the value you want to send
+        self.pub.publish(data_to_send)
+
+    def update_state(self, ego_car, obstcl_cars, set_safe_reach):
+        self.ego_car = ego_car
+        self.obstcl_cars = obstcl_cars
+        self.set_safe_reach = set_safe_reach
+
+    def update_ref(self):
+        max_points =  np.argmax(self.set_safe_reach[0])
+        # print(max_points) 
+        self.point_safe_reach_max =  [self.set_safe_reach[0][max_points], self.set_safe_reach[1][max_points]]  
+        X_ref = [self.point_safe_reach_max[0], self.point_safe_reach_max[1], 0.0, 4.0]
+        rospy.logwarn(("Target Ref for MPC: {:s}").format(X_ref))
+        self.publish(X_ref)
+        return self.point_safe_reach_max
+
+
 
 
 

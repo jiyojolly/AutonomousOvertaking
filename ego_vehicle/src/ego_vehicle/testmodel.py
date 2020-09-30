@@ -125,36 +125,10 @@ def main():
     x_0 = np.array([0.0,0.0,0.0, 8.0])
 
     reach1 = Polygon(sim_full(a_max, delta_max, x_0))
-    reach1 = Polygon(sim_full(a_max, delta_max, x_0, False, 'r'))
-    # reach2 = Polygon(sim_full(-a_max, delta_max, x_0))
-
-    # sim(x_0, np.array([a_max, delta_max/4]), 'g' )
-    # sim(x_0, np.array([a_max, delta_max/2]), 'g' )
-    # sim(x_0, np.array([a_max, 3*delta_max/4]), 'g' )
-
-    # v_des = 10.0
-    # a_max = 1.0
-    # delta_max = 0.5
-    # x_0 = np.array([0.0,0.0,0.0, 0.0])
-
+    # reach1 = Polygon(sim_full(a_max, delta_max, x_0, False, 'r'))
     
-
-    # sim(np.array([0.0,0.0,0.0, 5.0]), np.array([0.0, delta_max]), 'g' )
-    # sim(np.array([0.0,0.0,0.0, 5.0]), np.array([-a_max, delta_max]), 'r' )
-    # sim(np.array([0.0,0.0,0.0, 5.0]), np.array([-a_max, -delta_max]), 'r' )
-    # sim(np.array([0.0,0.0,0.0, 5.0]), np.array([-a_max, 0.0]), 'r' )
+    sim(x_0, np.array([-5.0, 0.3]), 'r')
     
-    # y_p = np.linspace(0, 50, 1/0.01)
-    # x_p = np.sqrt(np.square(25)-np.square(y_p-5)) + 12  
-    # print(y_p)
-    # print(x_p)
-    # plt.plot(x_p, y_p)
-    # plt.plot(-x_p, y_p)
-
-
-    # plt.plot(dx_vals_int_4[:,0], dx_vals_int_4[:,1 ])
-    # plt.plot(t[:v_max_idx], dx_vals_int_3[:v_max_idx,3])
-
 
 
     plt.legend(loc='best')

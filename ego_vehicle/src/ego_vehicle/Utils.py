@@ -224,3 +224,9 @@ def transform_location_L(loc, target_transform, inv = False):
 def deg360(angle):
     return abs(angle%360)
 
+
+
+# def get_nearestcar():
+
+#     print(self.sub_cars[0].get_location())
+

@@ -5,7 +5,7 @@
 	"Obstacle_L":3.0,
 	"X_limit":[-20,20],
 	"Y_limit":[-20,20],
-	"grid_res": 0.5,
+	"grid_res": 0.4,
 	"delta_vertex":-0.5,
 	"d_zero":20.0,
 	"Tf":3.0,
@@ -16,8 +16,8 @@
 	"Road_scale_factor":3,
 
 	"delta_t":0.1, 
-	"t_reach_horizon":5,
+	"t_reach_horizon":3,
 	"v_des": 30,         
-	"ax_max": 2.88,      
+	"ax_max": 1.5,      
 	"delta_max": 0.52
 } 

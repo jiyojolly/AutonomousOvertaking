@@ -7,8 +7,8 @@
 
   <!-- Ego vehicle -->
   <arg name='role_name' default='ego_vehicle'/>
-  <arg name="vehicle_filter" default='vehicle.*'/>
-  <arg name="spawn_point" default="-198,-85,2,0,0,270"/>
+  <arg name="vehicle_filter" default='vehicle.audi.a2'/>
+  <arg name="spawn_point" default="-198,-55,2,0,0,270"/>
   <!-- <arg name="spawn_point" default="10,0,2,0,0,0"/> -->
   <!-- <arg name="spawn_point" default="-4.7,-91.2,2.0,0,0,90"/> -->
 
@@ -16,9 +16,9 @@
   <arg name="town" default='Town07'/>
 
   <!-- Synchronous mode -->
-  <arg name='synchronous_mode' default=''/>
-  <arg name='synchronous_mode_wait_for_vehicle_control_command' default=''/>
-  <arg name='fixed_delta_seconds' default=''/>
+  <arg name='synchronous_mode' default='false'/>
+  <arg name='synchronous_mode_wait_for_vehicle_control_command' default='false'/>
+  <arg name='fixed_delta_seconds' default='0.1'/>
 
 
   <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
@@ -39,6 +39,11 @@
     <arg name='role_name' value='$(arg role_name)'/>
     <arg name="spawn_point" value="$(arg spawn_point)"/>
   </include>
+
+<!--   <include file="$(find carla_ackermann_control)/launch/carla_ackermann_control.launch">
+  </include> -->
+
+
 
   <include file="$(find main_client)/launch/main_client.launch">
     <arg name='role_name' value='$(arg role_name)'/>
