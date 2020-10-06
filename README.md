@@ -11,7 +11,7 @@ Setup Instructions
 2. Install Carla Simulator
     Follow instructions from the following link.
     [Carla Simulator](https://carla.readthedocs.io/en/latest/start_quickstart/)
-3.Install MATLAB 2019b
+3. Install MATLAB 2019b
     *Install required toolboxes
     **ROS Support toolbox - [link](https://www.mathworks.com/products/ros.html)
     **Custom Message support [link](https://www.mathworks.com/matlabcentral/fileexchange/49810-ros-toolbox-interface-for-ros-custom-messages)
