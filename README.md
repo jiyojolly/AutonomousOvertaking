@@ -23,13 +23,8 @@ Setup Instructions
     *   `$ rosdep install --from-paths src --ignore-src -r`
 7. Install required python packages using pip ( Source code is written in Python 2, hence python 2 packages are required)
     
-    *  Numpy - `$ pip2 install numpy`
-    
-    *  Shapely - `$ pip2 install Shapely`
-   
-    *   Matplotlib - `$ pip2 install matplotlib`
-   
-    *   Joblib - `$ pip install joblib`
+    *  `$ pip install -r pip_requirements.txt`
+
 8. Build using catkin build
     `$ catkin build`
 9. Source devel files 
