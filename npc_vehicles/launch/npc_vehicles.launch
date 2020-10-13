@@ -10,7 +10,7 @@
 
   <!-- <param name="/npc_vehicles/spawn_locs" value="[[-198,-75,2,90]]" /> -->
   <!-- <param name="/npc_vehicles/spawn_locs" value="[[-198,-75,2,-90], [-198,-65,2,-90], [-198,-45,2,-90]]" /> -->
-  <param name="/npc_vehicles/spawn_locs" value="[[-198,-45,2,-90]]" />
+  <param name="/npc_vehicles/spawn_locs" value="[[-198,-65,2,-90]]" />
 
   <node pkg="npc_vehicles" type="npc_vehicles.py" name="npc_vehicles" output="screen">
   </node>

@@ -198,27 +198,32 @@ def switch_CoordinateSystem(xyz):
     xyz[1] = -xyz[1]
     return xyz
 
-def transform_location_R(loc, target_transform, inv = False):
+def transform_location(loc, target_transform, inv = False, loc_CS = 'L', transformloc_CS ='R'):
+    """
+    Takes a location in the Carla left 
+    """
 
-    loc = switch_CoordinateSystem(np.append(loc,1))
+    if loc_CS is 'L':
+        loc = switch_CoordinateSystem(np.append(loc,1))
+    elif loc_CS is 'R':
+        loc = np.append(loc,1)
+    else:
+        raise ValueError("Unrecognised parameters for location transformation")
+
+
     T = transform2mat(target_transform)
     if inv is True:
-        tr_loc = switch_CoordinateSystem(np.dot(T, loc))
+        tr_loc = np.dot(T, loc)
     else:    
-        tr_loc = switch_CoordinateSystem(np.dot(np.linalg.inv(T), loc))
+        tr_loc = np.dot(np.linalg.inv(T), loc)
 
-    return tr_loc[:-1]
+    if transformloc_CS is 'L':
+        return switch_CoordinateSystem(tr_loc)[:-1]
+    elif transformloc_CS is 'R':
+        return tr_loc[:-1]
+    else:
+        raise ValueError("Unrecognised parameters for location transformation")
 
-def transform_location_L(loc, target_transform, inv = False):
-
-    loc = switch_CoordinateSystem(np.append(loc,1))
-    T = transform2mat(target_transform)
-    if inv is True:
-        tr_loc = switch_CoordinateSystem(np.dot(T, loc))
-    else:    
-        tr_loc = switch_CoordinateSystem(np.dot(np.linalg.inv(T), loc))
-
-    return tr_loc[:-1]
 
 
 def deg360(angle):

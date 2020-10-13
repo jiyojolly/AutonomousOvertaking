@@ -1,4 +1,4 @@
-function dx = vkinematicmodel_bicycle(x,u)
+function dx = vkinematicmodel_bicycle(x,u,ac,bc,c)
 % vkinematicmodel_bicycle - bicycle model (see [1])
 %                                      
 %

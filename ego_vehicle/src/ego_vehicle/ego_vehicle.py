@@ -79,6 +79,11 @@ class EgoVehicle(CarlaEgoVehicle):
         self.reach_set = ReachableSet(self.json_params)
         self.target_selection = TargetStateSelection()
 
+        # Sets 
+        self.L_safe = []
+        self.L_safe_reach = []
+        self.L_safe_reach_max = []
+
         # Plotting variables
         # Add fig and axes for contour and 3d surface plots
         self.fig_3d = plt.figure()
@@ -99,7 +104,7 @@ class EgoVehicle(CarlaEgoVehicle):
         #Get surrounding obstacle vehicles 
         self.sub_cars = self.get_subvehicles()
     
-        rospy.logwarn("Ego Vehicle Transform: {:s}".format(self.player.get_transform()))
+        # rospy.logwarn("Ego Vehicle Transform: {:s}".format(self.player.get_transform()))
        
         #Update car potential state and polygons
         self.car_potential.update_state(self.player, self.sub_cars, self.json_params)
@@ -116,7 +121,7 @@ class EgoVehicle(CarlaEgoVehicle):
         #Initialize meshgrid with zeroes
         z = np.zeros(self.pos_meshgrid[0].shape)
 
-        # #Update Car Obstacle potentials   
+        #Update Car Obstacle potentials   
         z = z + self.car_potential.update(self.pos_meshgrid, self.json_params)
         # #Update Road, Lane potentials   
         z = z + self.lane_potential.update(self.pos_meshgrid, self.json_params)
@@ -143,7 +148,7 @@ class EgoVehicle(CarlaEgoVehicle):
 
         #Publish reference state vector that maximizes longitudinal distance travel
         self.target_selection.update_state(self.player, self.sub_cars, self.L_safe_reach)
-        self.L_safe_reach_max = self.target_selection.update_ref()
+        self.target_selection.update_ref(self.world.get_map())
 
 
     def plot_all(self, z, pause=False):
@@ -171,19 +176,20 @@ class EgoVehicle(CarlaEgoVehicle):
                             shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
 
         #Plot Reachable / safe set
-        self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='c')
+        if self.L_safe: self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='c')
 
         self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1])
 
-        self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='g')
+        if self.L_safe_reach:self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='g')
 
-        self.ax_2d.scatter(self.L_safe_reach_max[0], self.L_safe_reach_max[1], marker='x', color='r')
+        self.ax_2d.scatter(self.target_selection.final_ref_target[0], self.target_selection.final_ref_target[1], marker='x', color='g')
+        self.ax_2d.scatter(self.target_selection.ref_target_safe_reach[0] , self.target_selection.ref_target_safe_reach[1], marker='x', color='y')
 
 
         # Plot potential field as a 3d surface plot
         self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
         # Print min max of pot field
-        print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
+        # print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
 
         # #Set axes limits of all plots
         self.ax_2d.set_xlim(-30,30)

@@ -100,7 +100,7 @@ class CarPotential(object):
             (float): Potential field value due to obstacle
         """
         ## function that generates bounding box using Carla
-        get_boundingbox_transformed = lambda vehicle, transform : [Utils.transform_location_R(np.array([vertex.x, vertex.y, vertex.z]),transform)
+        get_boundingbox_transformed = lambda vehicle, transform : [Utils.transform_location(np.array([vertex.x, vertex.y, vertex.z]),transform)
                                                          for i,vertex in enumerate(vehicle.bounding_box.get_world_vertices(vehicle.get_transform())) if (i % 2) == 0]
 
         get_boundingbox_local = lambda vehicle : [np.array([vertex.x, vertex.y, vertex.z])
@@ -123,14 +123,14 @@ class CarPotential(object):
         # frame_of_ref = carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0))
         frame_of_ref = ego_car.get_transform()
 
-        self.ego_car_location = Utils.transform_location_R(np.array([ego_car.get_transform().location.x, ego_car.get_transform().location.y, ego_car.get_transform().location.z]),frame_of_ref)
+        self.ego_car_location = Utils.transform_location(np.array([ego_car.get_transform().location.x, ego_car.get_transform().location.y, ego_car.get_transform().location.z]),frame_of_ref)
         v = ego_car.get_velocity()
         self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
         ego_box = get_boundingbox_transformed(ego_car, frame_of_ref)
         self.ego_plgn = LinearRing([(ego_box[0][0:2]), (ego_box[1][0:2]), (ego_box[3][0:2]), (ego_box[2][0:2])])
 
         #Obstacle Vehicles in Ego car frame
-        self.obstcl_vehicles_locs = [Utils.transform_location_R(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
+        self.obstcl_vehicles_locs = [Utils.transform_location(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
                                                                frame_of_ref) for vehicle in obstcl_vehicles]
         self.obstcl_vehicles_vels = [math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2) for vehicle in obstcl_vehicles]
         obstcl_vehicles_boxes_carla = [get_boundingbox_local(vehicle) for vehicle in obstcl_vehicles]
@@ -146,14 +146,15 @@ class CarPotential(object):
             # T = Utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
             # print(T)
             # print("Old Vehicle: {:s}".format(vehicle))
-            vehicle = [Utils.transform_location_R(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
-            vehicle = [Utils.transform_location_R(coord, frame_of_ref) for coord in vehicle]
+            vehicle = [Utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
+            vehicle = [Utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
             obstcl_vehicles_boxes_carla_T.append(vehicle)
             # print("New Vehicle: {:s}".format(vehicle))
                 
             
 
 
+        # print(obstcl_vehicles_boxes_carla_T)
         self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_T]
     
 
@@ -201,10 +202,11 @@ class LanePotential(object):
         self.curr_waypoint = curr_waypoint
         self.ego_transform = ego_transform
         lane_edges = Utils.getLaneEdges(curr_waypoint)
-        self.lane_edges_transformed = [Utils.transform_location_R(np.array([lane_edge[0], lane_edge[1], 0]),
+        self.lane_edges_transformed = [Utils.transform_location(np.array([lane_edge[0], lane_edge[1], 0]),
                                         ego_transform)[:-1]  for lane_edge in lane_edges]
         # print("Lane Edges: {:s}").format(lane_edges)
         # print("Lane Edges Transformed: {:s}").format(self.lane_edges_transformed)
+
 
     def update(self, pos_meshgrid, json_params):
         """
@@ -217,24 +219,33 @@ class LanePotential(object):
         Returns:
             (float): Potential field value due to obstable
         """
-
-        # print(self.lane_edges_transformed)
         U = np.zeros(pos_meshgrid[1].shape)  
-        # print("Ego yaw: {:f}").format(Utils.deg360(self.ego_transform.rotation.yaw))
-        # print("Waypoint yaw: {:f}").format(Utils.deg360(self.curr_waypoint.transform.rotation.yaw))
-        theta = -(Utils.deg360(-self.ego_transform.rotation.yaw) - Utils.deg360(-self.curr_waypoint.transform.rotation.yaw))*np.pi/180
-        # print("The angle between: {:f}").format(theta*180/np.pi)
-        #Calculate Road potential 
+        # print("Ego yaw: {:f}").format(Utils.deg360(-self.ego_transform.rotation.yaw))
+        # print("Waypoint yaw: {:f}").format(Utils.deg360(-self.curr_waypoint.transform.rotation.yaw))
+        theta = Utils.deg360(Utils.deg360(-self.curr_waypoint.transform.rotation.yaw) - Utils.deg360(-self.ego_transform.rotation.yaw) )*np.pi/180
+
+        #Calculate Road potential
+        '''
+        Theta is taken as negative due to the nature of 
+        applying rotation on functions applied on meshgrid
+        '''
+        theta = -theta
+        U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
+                                np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[0][0])+
+                                                        (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[0][1]))))))
+
         U = U + np.multiply(0.5*json_params["Road_scale_factor"], 
                             np.divide(1.0,np.square((np.sin(theta)*(pos_meshgrid[0] - self.lane_edges_transformed[-1][0])+
                                                     (np.cos(theta)*(pos_meshgrid[1] - self.lane_edges_transformed[-1][1]))))))
-        mask1 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) > (np.sin(theta)*self.lane_edges_transformed[0][0] + np.cos(theta)*self.lane_edges_transformed[0][1])) 
-        mask2 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) < (np.sin(theta)*self.lane_edges_transformed[-1][0] + np.cos(theta)*self.lane_edges_transformed[-1][1]))
-        # print(mask1.shape)
-        # print(mask2.shape)
+        
+        # if theta < (np.pi/2) or theta > (3*np.pi/2): 
+        mask1 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) < (np.sin(theta)*self.lane_edges_transformed[0][0] +
+                                                                                 np.cos(theta)*self.lane_edges_transformed[0][1])) 
+        mask2 =  ((np.sin(theta)*pos_meshgrid[0])+(np.cos(theta)*pos_meshgrid[1]) > (np.sin(theta)*self.lane_edges_transformed[-1][0] +
+                                                                                 np.cos(theta)*self.lane_edges_transformed[-1][1]))
         mask = mask1&mask2
         U = np.where(mask, U, 20)
-        
+
         #Calculate lane potential
         for i,lane in enumerate(self.lane_edges_transformed[1:-1]):
             U = U + np.multiply(json_params["Lane_Alane"], 
@@ -323,10 +334,13 @@ class TargetStateSelection(object):
         self.pub = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
         
         #Instance variables
-        self.X_Ref = np.zeros(4)
         self.ego_car = None
         self.obstcl_cars = []
+        self.set_safe_reach_np = None
 
+        #Final Targets
+        self.final_ref_target = np.zeros(2)
+        self.ref_target_safe_reach = np.zeros(2)
 
         
     def publish(self, X_ref):
@@ -334,20 +348,75 @@ class TargetStateSelection(object):
         data_to_send.data = X_ref # assign the array with the value you want to send
         self.pub.publish(data_to_send)
 
+    def get_nearest_lead_car(self):
+        """ 
+        The logic will be expanded to check for nearest 
+        lead car in case of many car scenario
+        """
+        if self.obstcl_cars:
+            return self.obstcl_cars[0]
+        else:
+            return None
+
     def update_state(self, ego_car, obstcl_cars, set_safe_reach):
         self.ego_car = ego_car
         self.obstcl_cars = obstcl_cars
-        self.set_safe_reach = set_safe_reach
+        self.set_safe_reach_np = np.transpose(np.array(set_safe_reach))
+        
 
-    def update_ref(self):
-        max_points =  np.argmax(self.set_safe_reach[0])
-        # print(max_points) 
-        self.point_safe_reach_max =  [self.set_safe_reach[0][max_points], self.set_safe_reach[1][max_points]]  
-        X_ref = [self.point_safe_reach_max[0], self.point_safe_reach_max[1], 0.0, 4.0]
+                
+
+    def update_ref(self, world_map):
+
+        #To overtake or not to
+        #overtake_mode = 0  -- cruise
+        #overtake_mode = 1  -- overtake
+        #overtake_mode = 2  -- cancel overtake
+
+        overtake_mode = 1   
+
+        '''
+        Decide whether to overtake and calculate reference based on waypoint
+
+        ''' 
+        if overtake_mode == 0:
+            pass
+
+        elif overtake_mode == 1:
+            nearest_lead_car = self.get_nearest_lead_car()
+            target_loc_obscl_frame =  np.array([5.0, 0, 0])
+            loc_world = Utils.transform_location(target_loc_obscl_frame, nearest_lead_car.get_transform(), inv = True, loc_CS = 'R')
+            waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
+                                                             -loc_world[1],
+                                                             loc_world[2]), project_to_road=True)
+            final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
+            print(final_ref_target_world)
+
+        else:
+            pass
+
+
+
+        #Transform ego final frame  
+        final_ref_target_ego = Utils.transform_location(final_ref_target_world, self.ego_car.get_transform(), loc_CS = 'R')
+        self.final_ref_target = final_ref_target_ego[:2]
+        
+        #Find nearest point from reach, safe set that minimizes the distance to final target state
+        # if False:
+        if self.set_safe_reach_np.size != 0:
+            ref_loc_index =  np.argmin(np.linalg.norm(self.final_ref_target[:2] - self.set_safe_reach_np, axis = 1))
+            print(self.set_safe_reach_np.shape)
+            self.ref_target_safe_reach =  self.set_safe_reach_np[ref_loc_index,:]
+            print(self.ref_target_safe_reach) 
+            X_ref = np.append(self.ref_target_safe_reach, [0.0, 4.0])
+            print(X_ref)
+        else:
+            # self.ref_target_safe_reach = r
+            X_ref = [0.0, 0.0, 0.0, 4.0]
+
+
         rospy.logwarn(("Target Ref for MPC: {:s}").format(X_ref))
         self.publish(X_ref)
-        return self.point_safe_reach_max
-
 
 
 
