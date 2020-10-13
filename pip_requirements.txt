@@ -4,6 +4,7 @@ scipy
 Shapely
 matplotlib
 joblib
+transforms3d
 
 
 ###### Requirements with Version Specifiers ######`
