@@ -1,14 +1,17 @@
-###### Requirements without Version Specifiers ######`
-numpy
+###### Requirements without Version Specifiers ######
 scipy
 Shapely
 matplotlib
 joblib
 transforms3d
 
+###### Requirements with Version Specifiers ######
+numpy >= 1.16.6
+pygame >= 1.9.6
 
-###### Requirements with Version Specifiers ######`
-##docopt == 0.6.1             # Version Matching. Must be version 0.6.1
-##keyring >= 4.1.1            # Minimum version 4.1.1
+
+
+###### Example specifiers ######
+#keyring >= 4.1.1            # Minimum version 4.1.1
 ##coverage != 3.5             # Version Exclusion. Anything except version 3.5
 ##Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.*
