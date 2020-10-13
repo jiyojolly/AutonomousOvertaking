@@ -6,5 +6,10 @@ __pycache__/
 _out/
 #MATLAB related
 MATLAB_models/slprj/
+MATLAB_models/custom_msgs/carla_ackermann_control
+MATLAB_models/custom_msgs/carla_msgs
+MATLAB_models/custom_msgs/geometry_msgs
+MATLAB_models/custom_msgs/custom_msgs
+MATLAB_models/custom_msgs/matlab_gen
 *.slx.autosave
 *.slxc
