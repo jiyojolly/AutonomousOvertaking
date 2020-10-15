@@ -9,17 +9,29 @@
 Functions for generating artificial potential fields
 
 """
+#Std packages
+import rospy
 import numpy as np
+import math
 from scipy import integrate
+import carla
+
+#3rd party packages
 from shapely.geometry import LineString, Polygon, LinearRing, Point, box, asPoint
 import shapely.ops
 from joblib import Parallel, delayed
+import ros_np_multiarray as rnm
+
+#custom packages
 import Utils
-import math
-import rospy
 from kinematic_bicycle_model import bicycle_model
-import carla
+
+#Message definitions
 from custom_msgs.msg import Float64Arr4
+from std_msgs.msg import Float32MultiArray
+
+
+
 
 # @profile
 def yukawa_pot(json_params, Kd):
@@ -83,9 +95,20 @@ class CarPotential(object):
         self.obstcl_vehicles_locs = []
         self.obstcl_vehicles_vels = []
         self.obstcl_vehicles_plgns = []
+        self.obstcl_vehicles_plgns_world = []
+
+         #Initialize publisher
+        self.pub = rospy.Publisher('Obstacle', Float32MultiArray, queue_size = 2)
 
 
-
+    def publish(self):
+        data_np = np.asarray(self.obstcl_vehicles_plgns_world[0].coords)[2:,:]
+        data_np = np.expand_dims(data_np,axis=0)
+        print(data_np.shape)
+        data_MArr = rnm.to_multiarray_f32(data_np)
+        # print(data_MArr)
+        data_to_send = data_MArr # assign the array with the value you want to send
+        self.pub.publish(data_to_send)
 
     # @profile
     def update_state(self, ego_car, obstcl_vehicles, json_params):
@@ -118,6 +141,16 @@ class CarPotential(object):
             # print("Psi value:{:f}".format(psi))
             return psi
 
+        def vel_scale_front(vel_ego, vel_obstcar):
+
+            if vel_obstcar >= json_params["d_zero"]/json_params["Tf"]: psi_zero = json_params["d_zero"]/(json_params["Tf"]*vel_obstcar)
+            else: psi_zero = 1.0
+            # print("Psi value:{:f}".format(psi_zero))
+            # if vel_ego > vel_obstcar: psi = psi_zero * np.exp(-json_params["beta"]*(vel_ego-vel_obstcar))
+            # else: psi = psi_zero 
+            # print("Psi value:{:f}".format(psi))
+            return psi_zero
+
         ##Update State variables
         #Ego Vehicle
         # frame_of_ref = carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0))
@@ -135,27 +168,34 @@ class CarPotential(object):
         self.obstcl_vehicles_vels = [math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2) for vehicle in obstcl_vehicles]
         obstcl_vehicles_boxes_carla = [get_boundingbox_local(vehicle) for vehicle in obstcl_vehicles]
 
-        obstcl_vehicles_boxes_carla_T = []
+        obstcl_vehicles_boxes_carla_ego = []
+        obstcl_vehicles_boxes_carla_world = []
         for i,vehicle in enumerate(obstcl_vehicles_boxes_carla):
-            triang_vertex = np.array([vehicle[0][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+            triang_vertex_b = np.array([vehicle[0][0]-(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+                                vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
+            triang_vertex_i = np.array([vehicle[2][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale_front(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
                                 vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
 
-            vehicle.insert(1,triang_vertex)
+            vehicle.insert(1,triang_vertex_b)
+            vehicle.insert(4,triang_vertex_i)
             # print(ego_car.get_transform())
             # print(obstcl_vehicles[i].get_transform())
             # T = Utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
             # print(T)
             # print("Old Vehicle: {:s}".format(vehicle))
             vehicle = [Utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
+            obstcl_vehicles_boxes_carla_world.append(vehicle)
             vehicle = [Utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
-            obstcl_vehicles_boxes_carla_T.append(vehicle)
+            obstcl_vehicles_boxes_carla_ego.append(vehicle)
             # print("New Vehicle: {:s}".format(vehicle))
                 
             
 
 
         # print(obstcl_vehicles_boxes_carla_T)
-        self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_T]
+        self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_ego]
+        self.obstcl_vehicles_plgns_world = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_world]
+        self.publish()
     
 
     # @profile

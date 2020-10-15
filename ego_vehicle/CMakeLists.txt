@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   roslaunch
   carla_ego_vehicle
+  ros_np_multiarray
 )
 
 catkin_python_setup()
@@ -15,6 +16,7 @@ catkin_package(
   CATKIN_DEPENDS
   rospy
   carla_ego_vehicle
+  ros_np_multiarray
 )
 
 catkin_install_python(PROGRAMS

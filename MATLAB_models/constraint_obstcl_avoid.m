@@ -1,7 +1,14 @@
-function cineq = constraint_obstcl_avoid(x,u,data, ac,bc,c)
+function cineq = constraint_obstcl_avoid(x,u,e,data, obstcl)
 
+    xy = obstcl;
+    ellip_coeff = EllipseDirectFit(xy);
+    ellip = @(x,y) ellip_coeff(1)*x.^2 + ellip_coeff(2)*x.*y +...
+                   ellip_coeff(3)*y.^2 + ellip_coeff(4)*x +...
+                   ellip_coeff(5)*y + ellip_coeff(6);
+               
+%     fimplicit(ellip)
     p = data.PredictionHorizon;
-    X1 = X(2:p+1,1);
-    X2 = X(2:p+1,2);
+    x1 = x(2:p+1,1);
+    y1 = x(2:p+1,2);
 
-    cineq = [2*X1.^2 - 3*X2 - 10;];
+    cineq = [ellip(x1,y1);];

@@ -4,10 +4,10 @@ car_len = 4;
 car_wid = 2;
 car_loc = [0, 0];
 vel_fac = 1.5;
-vel_fac_lead = 0.5; 
+vel_fac_lead = 0.9; 
 
-x = [car_loc(1)-car_len/2-vel_fac car_loc(1)-car_len/2 car_loc(1)+car_len/2 car_loc(1)+car_len/2+vel_fac*vel_fac_lead car_loc(1)+car_len/2 car_loc(1)-car_len/2]
-y = [car_loc(2)                   car_loc(2)+car_wid/2 car_loc(2)+car_wid/2 car_loc(2)                   car_loc(2)-car_wid/2 car_loc(2)-car_wid/2]
+x = [ car_loc(1)-car_len/2 car_loc(1)+car_len/2 car_loc(1)+car_len/2+vel_fac*vel_fac_lead car_loc(1)+car_len/2 car_loc(1)-car_len/2]
+y = [                   car_loc(2)+car_wid/2 car_loc(2)+car_wid/2 car_loc(2)                   car_loc(2)-car_wid/2 car_loc(2)-car_wid/2]
 pgon = polyshape(x,y);
 plot(pgon)
 hold on;
@@ -17,7 +17,9 @@ ellip_coeff = EllipseDirectFit(xy)
 
 
 
-ellip = @(x,y) ellip_coeff(1)*x^2 + ellip_coeff(2)*x*y + ellip_coeff(3)*y^2 + ellip_coeff(4)*x + ellip_coeff(5)*y + ellip_coeff(6)
+ellip = @(x,y) ellip_coeff(1)*x.^2 + ellip_coeff(2)*x.*y + ellip_coeff(3)*y.^2 + ellip_coeff(4)*x + ellip_coeff(5)*y + ellip_coeff(6)
+test_points = [1,2;2,3;-2,1;0,0]
+ellip(test_points(:,1), test_points(:,2)) 
 fimplicit(ellip)
 
 

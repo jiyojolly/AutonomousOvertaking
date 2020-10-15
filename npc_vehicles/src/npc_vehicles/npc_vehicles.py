@@ -62,7 +62,7 @@ class NPCVehicles(object):
                 color = random.choice(blueprint.get_attribute('color').recommended_values)
                 blueprint.set_attribute('color', color)
             blueprint.set_attribute('role_name', 'NPC_'+str(n))
-            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, False)))
+            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, True)))
 
         for response in self.client.apply_batch_sync(batch, self.settings.synchronous_mode):
             if response.error:
