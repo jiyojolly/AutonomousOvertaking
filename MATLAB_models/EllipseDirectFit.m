@@ -1,4 +1,4 @@
-function A = EllipseDirectFit(XY);
+function A = EllipseDirectFit(XY)
 %
 %  Direct ellipse fit, proposed in article
 %    A. W. Fitzgibbon, M. Pilu, R. B. Fisher

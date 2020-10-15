@@ -26,6 +26,7 @@ class NPCVehicles(object):
         self.host = rospy.get_param('/carla/host', '127.0.0.1')
         self.port = rospy.get_param('/carla/port', '2000')
         self.timeout = rospy.get_param('/carla/timeout', '2')
+        self.autopilot = rospy.get_param('/npc_vehicles/autopilot', False)
 
         #Get world & settings
         self.client = None
@@ -62,7 +63,7 @@ class NPCVehicles(object):
                 color = random.choice(blueprint.get_attribute('color').recommended_values)
                 blueprint.set_attribute('color', color)
             blueprint.set_attribute('role_name', 'NPC_'+str(n))
-            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, True)))
+            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, self.autopilot)))
 
         for response in self.client.apply_batch_sync(batch, self.settings.synchronous_mode):
             if response.error:
