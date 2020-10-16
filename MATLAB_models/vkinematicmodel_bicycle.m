@@ -12,16 +12,12 @@ function dx = vkinematicmodel_bicycle(x,u,obstcl)
 % Outputs:
 %    f - time-derivative of the stante vector
 %
-% References:
-%    [1] M. Althoff and J. M. Dolan. Online verification of automated
-%        road vehicles using reachability analysis.
-%        IEEE Transactions on Robotics, 30(4):903-918, 2014.
+
 %
 % Other m-files required: none
 % Subfunctions: none
 % MAT-files required: none
 %
-% See also: DOTcontrol_SRX_velEq, DOTBicycleDynamics_SRX_velEq
 
 % Author:       Jiyo Palatti
 % Written:      01-Sept-2020

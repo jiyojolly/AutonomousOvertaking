@@ -104,7 +104,7 @@ class CarPotential(object):
     def publish(self):
         data_np = np.asarray(self.obstcl_vehicles_plgns_world[0].coords)[2:,:]
         data_np = np.expand_dims(data_np,axis=0)
-        print(data_np.shape)
+        # print(data_np.shape)
         data_MArr = rnm.to_multiarray_f32(data_np)
         # print(data_MArr)
         data_to_send = data_MArr # assign the array with the value you want to send
@@ -430,33 +430,39 @@ class TargetStateSelection(object):
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
             final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
-            print(final_ref_target_world)
+            rospy.logwarn(("Final Target Ref world frame: {:s}").format(final_ref_target_world))
+            # print(final_ref_target_world)
 
         else:
             pass
 
 
 
-        #Transform ego final frame  
-        final_ref_target_ego = Utils.transform_location(final_ref_target_world, self.ego_car.get_transform(), loc_CS = 'R')
+        #Transform ego final frame
+        frame_of_ref = self.ego_car.get_transform()        
+        final_ref_target_ego = Utils.transform_location(final_ref_target_world, frame_of_ref, loc_CS = 'R')
         self.final_ref_target = final_ref_target_ego[:2]
         
         #Find nearest point from reach, safe set that minimizes the distance to final target state
         # if False:
         if self.set_safe_reach_np.size != 0:
             ref_loc_index =  np.argmin(np.linalg.norm(self.final_ref_target[:2] - self.set_safe_reach_np, axis = 1))
-            print(self.set_safe_reach_np.shape)
+            # print(self.set_safe_reach_np.shape)
             self.ref_target_safe_reach =  self.set_safe_reach_np[ref_loc_index,:]
-            print(self.ref_target_safe_reach) 
+            # print(self.ref_target_safe_reach) 
             X_ref = np.append(self.ref_target_safe_reach, [0.0, 4.0])
-            print(X_ref)
+            rospy.logwarn(("Target Ref for MPC in Ego frame: {:s}").format(X_ref))
         else:
             # self.ref_target_safe_reach = r
             X_ref = [0.0, 0.0, 0.0, 4.0]
 
 
-        rospy.logwarn(("Target Ref for MPC: {:s}").format(X_ref))
-        self.publish(X_ref)
+        # Transform to world frame before publishing..
+        x_ref_target_world = Utils.transform_location( np.array((X_ref[0],X_ref[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
+        x_ref_target_world = x_ref_target_world[:2]
+        X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
+        rospy.logwarn(("Target Ref for MPC in world frame: {:s}").format(X_ref_target_world))
+        self.publish(X_ref_target_world)
 
 
 
