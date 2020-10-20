@@ -1,38 +1,40 @@
-function plotAll(x_curr, x_ref_curr, obstcl, x_pred, mv_pred)
+function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred)
 
 %     coder.extrinsic('fcn'); 
 %     coder.extrinsic('fimplicit');
+    
     clf;
     hold on;
-    x_curr
     x_ref_curr
-    obstcl
     x_pred
     mv_pred
-    if nnz(obstcl) ~= 0
+     
 
-        %Plot Ego car
-        scatter(x_curr(1),x_curr(2),'d')
-        
-        %PLot MPC Referece  
-        scatter(x_ref_curr(1),x_ref_curr(2),'MarkerFaceColor',[0 .7 .7])
-        
-        %Plot MPC predicted path      
+    %Plot Ego car
+    if ~isscalar(x_curr)
+        scatter(x_curr(1),x_curr(2), 'd')
+    end
+
+    %Plot MPC Referece  
+    if ~isscalar(x_ref_curr)
+        scatter(x_ref_curr(1),x_ref_curr(2),'x','MarkerFaceColor',[0 .7 .7])
+    end
+
+    %Plot MPC predicted path      
+    if ~isscalar(obstcl) && nnz(x_pred) ~= 0
         scatter(x_pred(:,1),x_pred(:,2),'filled')
-        
-        %Plot obstacle
+    end
+
+    %Plot obstacle
+    if ~isscalar(obstcl) && nnz(obstcl) ~= 0
         pgon = polyshape(obstcl(:,1),obstcl(:,2));
         plot(pgon);
 
-
         %Plot fitted ellipse
-        ellip_coeff = zeros(6,1);
-        ellip_coeff(:) = real(EllipseDirectFit(obstcl));   
-        ellip = @(x,y) ellip_coeff(1)*x.^2 + ellip_coeff(2)*x.*y +...
-                       ellip_coeff(3)*y.^2 + ellip_coeff(4)*x +...
-                       ellip_coeff(5)*y + ellip_coeff(6);
+        n=ellip_coeff(6);
+        a = ellip_coeff(1) ; b = ellip_coeff(2); xe = ellip_coeff(3); ye = ellip_coeff(4); phi = ellip_coeff(5);
+        ellip = @(x,y) ((((x-xe).*cos(phi) - (y-ye).*sin(phi)))./a).^n + ((((x-xe).*sin(phi) + (y-ye).*cos(phi)))./b).^n - 1;
 
-        fimplicit(ellip, [-200 -180 60 70])
+        fimplicit(ellip, [-230 -180 60 70])
     end
-    
 end

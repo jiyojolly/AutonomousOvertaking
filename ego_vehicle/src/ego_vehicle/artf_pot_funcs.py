@@ -162,40 +162,41 @@ class CarPotential(object):
         ego_box = get_boundingbox_transformed(ego_car, frame_of_ref)
         self.ego_plgn = LinearRing([(ego_box[0][0:2]), (ego_box[1][0:2]), (ego_box[3][0:2]), (ego_box[2][0:2])])
 
-        #Obstacle Vehicles in Ego car frame
-        self.obstcl_vehicles_locs = [Utils.transform_location(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
-                                                               frame_of_ref) for vehicle in obstcl_vehicles]
-        self.obstcl_vehicles_vels = [math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2) for vehicle in obstcl_vehicles]
-        obstcl_vehicles_boxes_carla = [get_boundingbox_local(vehicle) for vehicle in obstcl_vehicles]
+        if obstcl_vehicles:
+            #Obstacle Vehicles in Ego car frame
+            self.obstcl_vehicles_locs = [Utils.transform_location(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
+                                                                   frame_of_ref) for vehicle in obstcl_vehicles]
+            self.obstcl_vehicles_vels = [math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2) for vehicle in obstcl_vehicles]
+            obstcl_vehicles_boxes_carla = [get_boundingbox_local(vehicle) for vehicle in obstcl_vehicles]
 
-        obstcl_vehicles_boxes_carla_ego = []
-        obstcl_vehicles_boxes_carla_world = []
-        for i,vehicle in enumerate(obstcl_vehicles_boxes_carla):
-            triang_vertex_b = np.array([vehicle[0][0]-(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
-                                vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
-            triang_vertex_i = np.array([vehicle[2][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale_front(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
-                                vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
+            obstcl_vehicles_boxes_carla_ego = []
+            obstcl_vehicles_boxes_carla_world = []
+            for i,vehicle in enumerate(obstcl_vehicles_boxes_carla):
+                triang_vertex_b = np.array([vehicle[0][0]-(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+                                    vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
+                triang_vertex_i = np.array([vehicle[2][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale_front(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+                                    vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
 
-            vehicle.insert(1,triang_vertex_b)
-            vehicle.insert(4,triang_vertex_i)
-            # print(ego_car.get_transform())
-            # print(obstcl_vehicles[i].get_transform())
-            # T = Utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
-            # print(T)
-            # print("Old Vehicle: {:s}".format(vehicle))
-            vehicle = [Utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
-            obstcl_vehicles_boxes_carla_world.append(vehicle)
-            vehicle = [Utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
-            obstcl_vehicles_boxes_carla_ego.append(vehicle)
-            # print("New Vehicle: {:s}".format(vehicle))
+                vehicle.insert(1,triang_vertex_b)
+                vehicle.insert(4,triang_vertex_i)
+                # print(ego_car.get_transform())
+                # print(obstcl_vehicles[i].get_transform())
+                # T = Utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
+                # print(T)
+                # print("Old Vehicle: {:s}".format(vehicle))
+                vehicle = [Utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
+                obstcl_vehicles_boxes_carla_world.append(vehicle)
+                vehicle = [Utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
+                obstcl_vehicles_boxes_carla_ego.append(vehicle)
+                # print("New Vehicle: {:s}".format(vehicle))
+                    
                 
-            
 
 
-        # print(obstcl_vehicles_boxes_carla_T)
-        self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_ego]
-        self.obstcl_vehicles_plgns_world = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_world]
-        self.publish()
+            # print(obstcl_vehicles_boxes_carla_T)
+            self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_ego]
+            self.obstcl_vehicles_plgns_world = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_world]
+            self.publish()
     
 
     # @profile
@@ -222,12 +223,16 @@ class CarPotential(object):
 
 
         # Vectorize and evaluate potential for mesh grid
-        func = lambda obstcl_vehicle : np.vectorize(eval_car_pot, excluded=['obstcl_vehicle'])(x=pos_meshgrid[0], y=pos_meshgrid[1], obstcl_vehicle=obstcl_vehicle)
-        car_z = [func(obstcl_vehicle) for obstcl_vehicle in self.obstcl_vehicles_plgns]
-        # car_z = Parallel(n_jobs=4)(delayed(func)(obstcl_vehicle) for obstcl_vehicle in self.obstcl_vehicles_plgns)
-        # temp = self.plgn_list[0]
-        # print("What is this?? : {:s}".format(np.asarray(temp)[0]))
-        return np.array(car_z).sum(axis=0)
+        car_z = np.zeros(pos_meshgrid[0].shape)
+        if self.obstcl_vehicles_plgns:
+            func = lambda obstcl_vehicle : np.vectorize(eval_car_pot, excluded=['obstcl_vehicle'])(x=pos_meshgrid[0], y=pos_meshgrid[1], obstcl_vehicle=obstcl_vehicle)
+            car_z = [func(obstcl_vehicle) for obstcl_vehicle in self.obstcl_vehicles_plgns]
+            # car_z = Parallel(n_jobs=4)(delayed(func)(obstcl_vehicle) for obstcl_vehicle in self.obstcl_vehicles_plgns)
+            # temp = self.plgn_list[0]
+            # print("What is this?? : {:s}".format(np.asarray(temp)[0]))
+            return np.array(car_z).sum(axis=0)
+        else:
+            return car_z
 
 
 class LanePotential(object):
@@ -346,8 +351,9 @@ class ReachableSet(object):
             return reach_set_tup1
 
         v = ego_car.get_velocity()
-        self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
-        x_0 = np.array([0.0,0.0,0.0, self.ego_car_vel])
+        # self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
+        # x_0 = np.array([0.0,0.0,0.0, self.ego_car_vel])
+        x_0 = np.array([0.0,0.0,0.0, self.v_des])
         
         
         
@@ -382,6 +388,9 @@ class TargetStateSelection(object):
         self.final_ref_target = np.zeros(2)
         self.ref_target_safe_reach = np.zeros(2)
 
+        #Overtake mode 
+        self.overtake_mode = 0
+
         
     def publish(self, X_ref):
         data_to_send = Float64Arr4()  # the data to be sent, initialise the array
@@ -407,20 +416,28 @@ class TargetStateSelection(object):
                 
 
     def update_ref(self, world_map):
-
+        '''
+        Decide whether to overtake and calculate reference based on waypoint
         #To overtake or not to
         #overtake_mode = 0  -- cruise
         #overtake_mode = 1  -- overtake
         #overtake_mode = 2  -- cancel overtake
-
-        overtake_mode = 1   
-
-        '''
-        Decide whether to overtake and calculate reference based on waypoint
-
         ''' 
+
+        if self.obstcl_cars:
+            overtake_mode = 1
+        else:
+            overtake_mode = 0
+
         if overtake_mode == 0:
-            pass
+            target_loc_obscl_frame =  np.array([5.0, 0, 0])
+            loc_world = Utils.transform_location(target_loc_obscl_frame, self.ego_car.get_transform(), inv = True, loc_CS = 'R')
+            waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
+                                                             -loc_world[1],
+                                                             loc_world[2]), project_to_road=True)
+            final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
+            rospy.logwarn(("Final Target Ref world frame: {:s}").format(final_ref_target_world))
+            # print(final_ref_target_world)
 
         elif overtake_mode == 1:
             nearest_lead_car = self.get_nearest_lead_car()

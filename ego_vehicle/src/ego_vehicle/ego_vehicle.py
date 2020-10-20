@@ -33,7 +33,7 @@ from shapely.geometry import Polygon, LineString, Point, box
 import shapely.ops
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
+from std_msgs.msg import Bool
 
 import artf_pot_funcs
 from artf_pot_funcs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
@@ -60,6 +60,11 @@ class EgoVehicle(CarlaEgoVehicle):
         self.json_params = None
         with open(self.param_definition_file) as handle:
             self.json_params = json.loads(handle.read())
+
+
+        self.carla_reset_scenario_subscriber = rospy.Subscriber(
+            "/carla/reset_scenario", Bool, self.reset_scenario_callback)
+
 
         # Ego car postion Point(x,y) at [0,0,0]
         self.ego_zero = np.array([0.0, 0.0, 0.0])
@@ -99,41 +104,26 @@ class EgoVehicle(CarlaEgoVehicle):
         # ylims = np.array([-50,50])
         # zlims = np.array([0,30])
 
-    def update_state(self):
+    def reset_scenario_callback(self,data):
+        rospy.logwarn("Resetting scenario.... {}".format(data))
+        self.restart()
 
-        #Get surrounding obstacle vehicles 
-        self.sub_cars = self.get_subvehicles()
-    
-        # rospy.logwarn("Ego Vehicle Transform: {:s}".format(self.player.get_transform()))
+    def get_subvehicles(self):
+        vehicles_list = self.world.get_actors().filter('vehicle.*')
+        vehicles_list = [x for x in vehicles_list if x.id != self.player.id]
+        return vehicles_list
+
+    def update_state(self):
        
-        #Update car potential state and polygons
+        #Update state of obstacle car risk calculation
+    
         self.car_potential.update_state(self.player, self.sub_cars, self.json_params)
 
-        #Update Lane edges
+        #Update state of Road & Lane risk calculation 
         curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
         self.lane_potential.update_state(curr_waypoint, self.player.get_transform())
 
 
-    def update_pot(self):
-         
-        #Update State 
-        self.update_state()
-        #Initialize meshgrid with zeroes
-        z = np.zeros(self.pos_meshgrid[0].shape)
-
-        #Update Car Obstacle potentials   
-        z = z + self.car_potential.update(self.pos_meshgrid, self.json_params)
-        # #Update Road, Lane potentials   
-        z = z + self.lane_potential.update(self.pos_meshgrid, self.json_params)
-
-        self.z = np.clip(z,-20,20) 
-        
-        self.reach_set.update(self.player)
-        self.select_target()
-
-        # Update plot ...
-        # self.plot_all(self.z, pause=True)
-        self.plot_all(self.z, pause=False)
 
     def select_target(self):
         mask_safe = self.z < 8
@@ -151,6 +141,34 @@ class EgoVehicle(CarlaEgoVehicle):
         self.target_selection.update_ref(self.world.get_map())
 
 
+    def update_pot(self):
+         
+        #Get surrounding obstacle vehicles 
+        self.sub_cars = self.get_subvehicles()
+        # rospy.logwarn("Ego Vehicle Transform: {:s}".format(self.player.get_transform()))
+        
+        if self.player is not None:
+            #Update State
+            self.update_state()
+            #Initialize meshgrid with zeroes
+            z = np.zeros(self.pos_meshgrid[0].shape)
+
+            #Update Car Obstacle potentials
+            z = z + self.car_potential.update(self.pos_meshgrid, self.json_params)
+
+            #Update Road, Lane potentials   
+            z = z + self.lane_potential.update(self.pos_meshgrid, self.json_params)
+
+            self.z = np.clip(z,-20,20) 
+            
+            #Update Reachability and safe set
+            self.reach_set.update(self.player)
+            self.select_target()
+
+            # Update plot ...
+            # self.plot_all(self.z, pause=True)
+            self.plot_all(self.z, pause=False)
+
     def plot_all(self, z, pause=False):
 
         #Clear previous plots
@@ -166,14 +184,15 @@ class EgoVehicle(CarlaEgoVehicle):
         
 
         # Plot obstacle vehicle and its polygons
-        [self.ax_2d.plot(obst_car[0], obst_car[1], marker='x') for obst_car in self.car_potential.obstcl_vehicles_locs]
-        [self.ax_2d.plot(np.asarray(obst_car_plgn)[:,0],np.asarray(obst_car_plgn)[:,1]) for obst_car_plgn in self.car_potential.obstcl_vehicles_plgns]
+        if self.car_potential.obstcl_vehicles_locs:
+            [self.ax_2d.plot(obst_car[0], obst_car[1], marker='x') for obst_car in self.car_potential.obstcl_vehicles_locs]
+            [self.ax_2d.plot(np.asarray(obst_car_plgn)[:,0],np.asarray(obst_car_plgn)[:,1]) for obst_car_plgn in self.car_potential.obstcl_vehicles_plgns]
         
-        # Plot Nearest point to obstable
-        [self.ax_2d.plot([shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].x, 
-                            shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].x],
-                         [shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].y, 
-                            shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
+            # Plot Nearest point to obstable
+            [self.ax_2d.plot([shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].x, 
+                                shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].x],
+                             [shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].y, 
+                                shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
 
         #Plot Reachable / safe set
         if self.L_safe: self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='c')
@@ -203,12 +222,6 @@ class EgoVehicle(CarlaEgoVehicle):
         self.fig_2d.canvas.draw()
         if pause:
             raw_input("Press Enter to continue...")
-
-
-    def get_subvehicles(self):
-        vehicles_list = self.world.get_actors().filter('vehicle.*')
-        vehicles_list = [x for x in vehicles_list if x.id != self.player.id]
-        return vehicles_list
         
 
     def run(self):

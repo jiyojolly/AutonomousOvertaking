@@ -16,8 +16,8 @@
 	"Road_scale_factor":3,
 
 	"delta_t":0.1, 
-	"t_reach_horizon":3,
+	"t_reach_horizon":1.0,
 	"v_des": 30,         
-	"ax_max": 1.5,      
+	"ax_max": 0.0,      
 	"delta_max": 0.52
 } 

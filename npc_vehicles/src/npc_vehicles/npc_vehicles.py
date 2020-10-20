@@ -18,6 +18,7 @@ import carla
 import rospy
 import random
 from carla_msgs.msg import CarlaWorldInfo
+from std_msgs.msg import Bool
 
 class NPCVehicles(object):
     """Class for instantiating other non ego vehicles of different scenarios"""
@@ -28,6 +29,9 @@ class NPCVehicles(object):
         self.timeout = rospy.get_param('/carla/timeout', '2')
         self.autopilot = rospy.get_param('/npc_vehicles/autopilot', False)
 
+        self.carla_reset_scenario_subscriber = rospy.Subscriber(
+            "/carla/reset_scenario", Bool, self.reset_scenario_callback)
+
         #Get world & settings
         self.client = None
         self.world = None
@@ -37,7 +41,13 @@ class NPCVehicles(object):
         self.npc_agents = []
         self.spawn_points = [] 
 
-        
+    def reset_scenario_callback(self,data):
+        rospy.logwarn("Resetting NPCs .... {}".format(data))
+        self.restart()
+
+    def restart(self):
+        self.destroy()
+        self.init_npcs()
 
     def get_spawnpoint(self,loc):
         return carla.Transform(carla.Location(x=loc[0],y=loc[1],z=loc[2]),carla.Rotation(yaw=loc[3]))

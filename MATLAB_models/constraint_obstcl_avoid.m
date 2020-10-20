@@ -5,6 +5,7 @@ function cineq = constraint_obstcl_avoid(x,u,e,data, ellip_coeff)
                    ellip_coeff(5)*y + ellip_coeff(6);
                
     p = data.PredictionHorizon;
+    
     x1 = x(2:p+1,1);
     y1 = x(2:p+1,2);
 

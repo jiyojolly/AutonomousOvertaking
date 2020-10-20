@@ -22,6 +22,7 @@ try:
     from pygame.locals import K_COMMA
     from pygame.locals import K_DOWN
     from pygame.locals import K_ESCAPE
+    from pygame.locals import K_BACKSPACE
     from pygame.locals import K_F1
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
@@ -61,6 +62,8 @@ class KeyboardControl(object):
         self.vehicle_control_manual_override_publisher = rospy.Publisher(
             "/carla/{}/vehicle_control_manual_override".format(self.role_name),
             Bool, queue_size=1, latch=True)
+        self.reset_scenario_publisher = rospy.Publisher(
+            "/carla/reset_scenario", Bool, queue_size=1, latch=False)
         self.vehicle_control_manual_override = False
         self.auto_pilot_enable_publisher = rospy.Publisher(
             "/carla/{}/enable_autopilot".format(self.role_name), Bool, queue_size=1)
@@ -87,6 +90,14 @@ class KeyboardControl(object):
         self.hud.notification('Set vehicle control manual override to: {}'.format(enable))
         self.vehicle_control_manual_override_publisher.publish((Bool(data=enable)))
 
+    def set_reset_scenario(self, enable):
+        """
+        Set the manual control override
+        """
+        self.hud.notification('Resetting scenario....')
+        self.reset_scenario_publisher.publish((Bool(data=enable)))
+
+
     def set_autopilot(self, enable):
         """
         enable/disable the autopilot
@@ -112,6 +123,8 @@ class KeyboardControl(object):
                 elif event.key == K_b:
                     self.vehicle_control_manual_override = not self.vehicle_control_manual_override
                     self.set_vehicle_control_manual_override(self.vehicle_control_manual_override)
+                elif event.key == K_BACKSPACE:
+                    self.set_reset_scenario(True)
                 if event.key == K_q:
                     self._control.gear = 1 if self._control.reverse else -1
                 elif event.key == K_m:

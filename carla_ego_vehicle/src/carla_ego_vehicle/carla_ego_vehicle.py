@@ -126,7 +126,7 @@ class CarlaEgoVehicle(object):
                 spawn_point.location.x = self.actor_spawnpoint.position.x
                 spawn_point.location.y = -self.actor_spawnpoint.position.y
                 spawn_point.location.z = self.actor_spawnpoint.position.z + \
-                    2  # spawn 2m above ground
+                    1  # spawn 2m above ground
                 quaternion = (
                     self.actor_spawnpoint.orientation.x,
                     self.actor_spawnpoint.orientation.y,
@@ -148,11 +148,13 @@ class CarlaEgoVehicle(object):
 
             else:
                 if self.player is not None:
+                    self.player.set_target_velocity(carla.Vector3D())
                     spawn_point = self.player.get_transform()
                     spawn_point.location.z += 2.0
                     spawn_point.rotation.roll = 0.0
                     spawn_point.rotation.pitch = 0.0
                     self.player.set_transform(spawn_point)
+                    self.player.set_target_velocity(carla.Vector3D())
                 while self.player is None:
                     spawn_points = self.world.get_map().get_spawn_points()
                     spawn_point = secure_random.choice(

@@ -1,4 +1,4 @@
-function ellipse_t = fit_ellipse( x,y,axis_handle )
+function ellipse_t = fit_ellipse_mod( x,y,axis_handle )
 %
 % fit_ellipse - finds the best fit to an ellipse for the given set of points.
 %
@@ -136,9 +136,21 @@ function ellipse_t = fit_ellipse( x,y,axis_handle )
 
 % initialize
 orientation_tolerance = 1e-3;
+% initialize an empty structure
+ellipse_t = struct( ...
+    'a',[],...
+    'b',[],...
+    'phi',[],...
+    'X0',[],...
+    'Y0',[],...
+    'X0_in',[],...
+    'Y0_in',[],...
+    'long_axis',[],...
+    'short_axis',[],...
+    'status',[] );
 
 % empty warning stack
-warning( '' );
+% warning( '' );
 
 % prepare vectors, must be column vectors
 x = x(:);
@@ -155,11 +167,11 @@ X = [x.^2, x.*y, y.^2, x, y ];
 a = sum(X)/(X'*X);
 
 % check for warnings
-if ~isempty( lastwarn )
-    disp( 'stopped because of a warning regarding matrix inversion' );
-    ellipse_t = [];
-    return
-end
+% if ~isempty( lastwarn )
+%     disp( 'stopped because of a warning regarding matrix inversion' );
+%     ellipse_t = [];
+%     return
+% end
 
 % extract parameters from the conic equation
 [a,b,c,d,e] = deal( a(1),a(2),a(3),a(4),a(5) );
@@ -187,10 +199,11 @@ end
 
 % check if conic equation represents an ellipse
 test = a*c;
+status = '';
 switch (1)
 case (test>0),  status = '';
-case (test==0), status = 'Parabola found';  warning( 'fit_ellipse: Did not locate an ellipse' );
-case (test<0),  status = 'Hyperbola found'; warning( 'fit_ellipse: Did not locate an ellipse' );
+case (test==0), status = 'Parabola found';  %warning( 'fit_ellipse: Did not locate an ellipse' );
+case (test<0),  status = 'Hyperbola found'; %warning( 'fit_ellipse: Did not locate an ellipse' );
 end
 
 % if we found an ellipse return it's data
@@ -240,29 +253,29 @@ else
         'status',status );
 end
 
-% check if we need to plot an ellipse with it's axes.
-if (nargin>2) & ~isempty( axis_handle ) & (test>0)
-    
-    % rotation matrix to rotate the axes with respect to an angle phi
-    R = [ cos_phi sin_phi; -sin_phi cos_phi ];
-    
-    % the axes
-    ver_line        = [ [X0 X0]; Y0+b*[-1 1] ];
-    horz_line       = [ X0+a*[-1 1]; [Y0 Y0] ];
-    new_ver_line    = R*ver_line;
-    new_horz_line   = R*horz_line;
-    
-    % the ellipse
-    theta_r         = linspace(0,2*pi);
-    ellipse_x_r     = X0 + a*cos( theta_r );
-    ellipse_y_r     = Y0 + b*sin( theta_r );
-    rotated_ellipse = R * [ellipse_x_r;ellipse_y_r];
-    
-    % draw
-    hold_state = get( axis_handle,'NextPlot' );
-    set( axis_handle,'NextPlot','add' );
-    plot( new_ver_line(1,:),new_ver_line(2,:),'r' );
-    plot( new_horz_line(1,:),new_horz_line(2,:),'r' );
-    plot( rotated_ellipse(1,:),rotated_ellipse(2,:),'r' );
-    set( axis_handle,'NextPlot',hold_state );
-end
+% % check if we need to plot an ellipse with it's axes.
+% if (nargin>2) && ~isempty( axis_handle ) && (test>0)
+%     
+%     % rotation matrix to rotate the axes with respect to an angle phi
+%     R = [ cos_phi sin_phi; -sin_phi cos_phi ];
+%     
+%     % the axes
+%     ver_line        = [ [X0 X0]; Y0+b*[-1 1] ];
+%     horz_line       = [ X0+a*[-1 1]; [Y0 Y0] ];
+%     new_ver_line    = R*ver_line;
+%     new_horz_line   = R*horz_line;
+%     
+%     % the ellipse
+%     theta_r         = linspace(0,2*pi);
+%     ellipse_x_r     = X0 + a*cos( theta_r );
+%     ellipse_y_r     = Y0 + b*sin( theta_r );
+%     rotated_ellipse = R * [ellipse_x_r;ellipse_y_r];
+%     
+%     % draw
+%     hold_state = get( axis_handle,'NextPlot' );
+%     set( axis_handle,'NextPlot','add' );
+%     plot( new_ver_line(1,:),new_ver_line(2,:),'r' );
+%     plot( new_horz_line(1,:),new_horz_line(2,:),'r' );
+%     plot( rotated_ellipse(1,:),rotated_ellipse(2,:),'r' );
+%     set( axis_handle,'NextPlot',hold_state );
+% end

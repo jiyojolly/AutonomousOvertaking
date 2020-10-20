@@ -245,7 +245,7 @@ class CarlaRosBridge(object):
             if self.parameters['synchronous_mode_wait_for_vehicle_control_command']:
                 # wait for all ego vehicles to send a vehicle control command
                 if self._expected_ego_vehicle_control_command_ids:
-                    if not self._all_vehicle_control_commands_received.wait(1):
+                    if not self._all_vehicle_control_commands_received.wait(10):
                         rospy.logwarn("Timeout (1s) while waiting for vehicle control commands. "
                                       "Missing command from actor ids {}".format(
                                           self._expected_ego_vehicle_control_command_ids))
