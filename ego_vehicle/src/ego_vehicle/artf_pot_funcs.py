@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright (c) 2020 
 # Jiyo Jolly Palatti
 #
@@ -20,11 +18,10 @@ import carla
 from shapely.geometry import LineString, Polygon, LinearRing, Point, box, asPoint
 import shapely.ops
 from joblib import Parallel, delayed
-import ros_np_multiarray as rnm
 
 #custom packages
-import Utils
-from kinematic_bicycle_model import bicycle_model
+import utils
+from ego_vehicle.kinematic_bicycle_model import bicycle_model
 
 #Message definitions
 from custom_msgs.msg import Float64Arr4
@@ -105,7 +102,7 @@ class CarPotential(object):
         data_np = np.asarray(self.obstcl_vehicles_plgns_world[0].coords)[2:,:]
         data_np = np.expand_dims(data_np,axis=0)
         # print(data_np.shape)
-        data_MArr = rnm.to_multiarray_f32(data_np)
+        data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
         # print(data_MArr)
         data_to_send = data_MArr # assign the array with the value you want to send
         self.pub.publish(data_to_send)
@@ -123,7 +120,7 @@ class CarPotential(object):
             (float): Potential field value due to obstacle
         """
         ## function that generates bounding box using Carla
-        get_boundingbox_transformed = lambda vehicle, transform : [Utils.transform_location(np.array([vertex.x, vertex.y, vertex.z]),transform)
+        get_boundingbox_transformed = lambda vehicle, transform : [utils.transform_location(np.array([vertex.x, vertex.y, vertex.z]),transform)
                                                          for i,vertex in enumerate(vehicle.bounding_box.get_world_vertices(vehicle.get_transform())) if (i % 2) == 0]
 
         get_boundingbox_local = lambda vehicle : [np.array([vertex.x, vertex.y, vertex.z])
@@ -156,7 +153,7 @@ class CarPotential(object):
         # frame_of_ref = carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0))
         frame_of_ref = ego_car.get_transform()
 
-        self.ego_car_location = Utils.transform_location(np.array([ego_car.get_transform().location.x, ego_car.get_transform().location.y, ego_car.get_transform().location.z]),frame_of_ref)
+        self.ego_car_location = utils.transform_location(np.array([ego_car.get_transform().location.x, ego_car.get_transform().location.y, ego_car.get_transform().location.z]),frame_of_ref)
         v = ego_car.get_velocity()
         self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
         ego_box = get_boundingbox_transformed(ego_car, frame_of_ref)
@@ -164,7 +161,7 @@ class CarPotential(object):
 
         if obstcl_vehicles:
             #Obstacle Vehicles in Ego car frame
-            self.obstcl_vehicles_locs = [Utils.transform_location(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
+            self.obstcl_vehicles_locs = [utils.transform_location(np.array([vehicle.get_location().x, vehicle.get_location().y, vehicle.get_location().z]), 
                                                                    frame_of_ref) for vehicle in obstcl_vehicles]
             self.obstcl_vehicles_vels = [math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2) for vehicle in obstcl_vehicles]
             obstcl_vehicles_boxes_carla = [get_boundingbox_local(vehicle) for vehicle in obstcl_vehicles]
@@ -181,12 +178,12 @@ class CarPotential(object):
                 vehicle.insert(4,triang_vertex_i)
                 # print(ego_car.get_transform())
                 # print(obstcl_vehicles[i].get_transform())
-                # T = Utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
+                # T = utils.relative_transform(obstcl_vehicles[i].get_transform(), frame_of_ref)
                 # print(T)
                 # print("Old Vehicle: {:s}".format(vehicle))
-                vehicle = [Utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
+                vehicle = [utils.transform_location(coord,obstcl_vehicles[i].get_transform(), inv = True) for coord in vehicle]
                 obstcl_vehicles_boxes_carla_world.append(vehicle)
-                vehicle = [Utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
+                vehicle = [utils.transform_location(coord, frame_of_ref, loc_CS = 'R') for coord in vehicle]
                 obstcl_vehicles_boxes_carla_ego.append(vehicle)
                 # print("New Vehicle: {:s}".format(vehicle))
                     
@@ -246,8 +243,8 @@ class LanePotential(object):
     def update_state(self, curr_waypoint, ego_transform):
         self.curr_waypoint = curr_waypoint
         self.ego_transform = ego_transform
-        lane_edges = Utils.getLaneEdges(curr_waypoint)
-        self.lane_edges_transformed = [Utils.transform_location(np.array([lane_edge[0], lane_edge[1], 0]),
+        lane_edges = utils.getLaneEdges(curr_waypoint)
+        self.lane_edges_transformed = [utils.transform_location(np.array([lane_edge[0], lane_edge[1], 0]),
                                         ego_transform)[:-1]  for lane_edge in lane_edges]
         # print("Lane Edges: {:s}").format(lane_edges)
         # print("Lane Edges Transformed: {:s}").format(self.lane_edges_transformed)
@@ -265,9 +262,9 @@ class LanePotential(object):
             (float): Potential field value due to obstable
         """
         U = np.zeros(pos_meshgrid[1].shape)  
-        # print("Ego yaw: {:f}").format(Utils.deg360(-self.ego_transform.rotation.yaw))
-        # print("Waypoint yaw: {:f}").format(Utils.deg360(-self.curr_waypoint.transform.rotation.yaw))
-        theta = Utils.deg360(Utils.deg360(-self.curr_waypoint.transform.rotation.yaw) - Utils.deg360(-self.ego_transform.rotation.yaw) )*np.pi/180
+        # print("Ego yaw: {:f}").format(utils.deg360(-self.ego_transform.rotation.yaw))
+        # print("Waypoint yaw: {:f}").format(utils.deg360(-self.curr_waypoint.transform.rotation.yaw))
+        theta = utils.deg360(utils.deg360(-self.curr_waypoint.transform.rotation.yaw) - utils.deg360(-self.ego_transform.rotation.yaw) )*np.pi/180
 
         #Calculate Road potential
         '''
@@ -338,8 +335,8 @@ class ReachableSet(object):
       
             
             # print(v_max_idx)
-            reach_set_tup1 = zip(dx_vals_int_1[:v_max_idx, 0],dx_vals_int_1[:v_max_idx, 1])
-            reach_set_tup2 = zip(dx_vals_int_2[:v_max_idx, 0],dx_vals_int_2[:v_max_idx, 1])
+            reach_set_tup1 = list(zip(dx_vals_int_1[:v_max_idx, 0],dx_vals_int_1[:v_max_idx, 1]))
+            reach_set_tup2 = list(zip(dx_vals_int_2[:v_max_idx, 0],dx_vals_int_2[:v_max_idx, 1]))
             reach_set_tup1.reverse()
             reach_set_tup1.extend(reach_set_tup2)
             reach_set_tup1.extend(edge_points)
@@ -431,23 +428,23 @@ class TargetStateSelection(object):
 
         if overtake_mode == 0:
             target_loc_obscl_frame =  np.array([5.0, 0, 0])
-            loc_world = Utils.transform_location(target_loc_obscl_frame, self.ego_car.get_transform(), inv = True, loc_CS = 'R')
+            loc_world = utils.transform_location(target_loc_obscl_frame, self.ego_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
             final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
-            rospy.logwarn(("Final Target Ref world frame: {:s}").format(final_ref_target_world))
+            rospy.logwarn(f"Final Target Ref world frame: {final_ref_target_world}")
             # print(final_ref_target_world)
 
         elif overtake_mode == 1:
             nearest_lead_car = self.get_nearest_lead_car()
             target_loc_obscl_frame =  np.array([5.0, 0, 0])
-            loc_world = Utils.transform_location(target_loc_obscl_frame, nearest_lead_car.get_transform(), inv = True, loc_CS = 'R')
+            loc_world = utils.transform_location(target_loc_obscl_frame, nearest_lead_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
             final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
-            rospy.logwarn(("Final Target Ref world frame: {:s}").format(final_ref_target_world))
+            rospy.logwarn(f"Final Target Ref world frame: {final_ref_target_world}")
             # print(final_ref_target_world)
 
         else:
@@ -457,7 +454,7 @@ class TargetStateSelection(object):
 
         #Transform ego final frame
         frame_of_ref = self.ego_car.get_transform()        
-        final_ref_target_ego = Utils.transform_location(final_ref_target_world, frame_of_ref, loc_CS = 'R')
+        final_ref_target_ego = utils.transform_location(final_ref_target_world, frame_of_ref, loc_CS = 'R')
         self.final_ref_target = final_ref_target_ego[:2]
         
         #Find nearest point from reach, safe set that minimizes the distance to final target state
@@ -468,17 +465,17 @@ class TargetStateSelection(object):
             self.ref_target_safe_reach =  self.set_safe_reach_np[ref_loc_index,:]
             # print(self.ref_target_safe_reach) 
             X_ref = np.append(self.ref_target_safe_reach, [0.0, 4.0])
-            rospy.logwarn(("Target Ref for MPC in Ego frame: {:s}").format(X_ref))
+            rospy.logwarn(f"Target Ref for MPC in Ego frame: {X_ref}")
         else:
             # self.ref_target_safe_reach = r
             X_ref = [0.0, 0.0, 0.0, 4.0]
 
 
         # Transform to world frame before publishing..
-        x_ref_target_world = Utils.transform_location( np.array((X_ref[0],X_ref[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
+        x_ref_target_world = utils.transform_location( np.array((X_ref[0],X_ref[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
         x_ref_target_world = x_ref_target_world[:2]
         X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
-        rospy.logwarn(("Target Ref for MPC in world frame: {:s}").format(X_ref_target_world))
+        rospy.logwarn(f"Target Ref for MPC in world frame: {X_ref_target_world}")
         self.publish(X_ref_target_world)
 
 

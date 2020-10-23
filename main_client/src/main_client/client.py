@@ -49,8 +49,8 @@ try:
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
-from ui_utils import HUD
-from keyboard_control import KeyboardControl
+from main_client.ui_utils import HUD
+from main_client.keyboard_control import KeyboardControl
 
 import sys
 print('\n'.join(sys.path))

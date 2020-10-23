@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 plt.ion()
 
 
-def maidfdfn():
+def main():
     # Read params from file
     param_definition_file = "/home/jiyo/workspace/autonomous-overtaking/autonomous-overtaking/ego_vehicle/config/params.json"
     if not os.path.exists(param_definition_file):

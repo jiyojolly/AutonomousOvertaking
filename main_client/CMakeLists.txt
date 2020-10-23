@@ -16,7 +16,7 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS
-  src/main_client/main_client.py
+  src/main_client/client.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -19,7 +19,12 @@ import carla
 import rospy
 import numpy as np
 import transforms3d
-
+from std_msgs.msg import MultiArrayDimension
+from std_msgs.msg import (Float32MultiArray, Float64MultiArray,
+                          Int8MultiArray, Int16MultiArray,
+                          Int32MultiArray, Int64MultiArray,
+                          UInt8MultiArray, UInt16MultiArray,
+                          UInt32MultiArray, UInt64MultiArray)
 
 
 def getLaneEdges(waypoint):
@@ -33,25 +38,25 @@ def getLaneEdges(waypoint):
     right_lane_edges = []
     
     # Find all left and right lanes recursively
-    if (curr_lane.get_left_lane() is not None and 
+    if (curr_lane.get_left_lane() != None and 
         curr_lane.get_left_lane().lane_type is carla.LaneType.Driving):
         left_lanes = [curr_lane.get_left_lane()]
-    if (curr_lane.get_right_lane() is not None and 
-        curr_lane.get_right_lane().lane_type is carla.LaneType.Driving):
+    if (curr_lane.get_right_lane() != None and 
+        curr_lane.get_right_lane().lane_type == carla.LaneType.Driving):
         right_lanes = [curr_lane.get_right_lane()]
 
-    while left_lanes and not(left_lanes[-1].get_left_lane() is None or 
-                left_lanes[-1].get_right_lane() is None or 
-                left_lanes[-1].get_left_lane().lane_type is carla.LaneType.Driving or 
-                left_lanes[-1].get_right_lane().lane_type is carla.LaneType.Driving):
+    while left_lanes and not(left_lanes[-1].get_left_lane() == None or 
+                left_lanes[-1].get_right_lane() == None or 
+                left_lanes[-1].get_left_lane().lane_type == carla.LaneType.Driving or 
+                left_lanes[-1].get_right_lane().lane_type == carla.LaneType.Driving):
 
             if curr_lane.lane_id*left_lanes[-1].lane_id > 0: left_lanes.append(left_lanes[-1].get_left_lane())
             else: left_lanes.append(left_lanes[-1].get_right_lane())
 
-    while right_lanes and not(right_lanes[-1].get_left_lane() is None or 
-                right_lanes[-1].get_right_lane() is None or 
-                right_lanes[-1].get_left_lane().lane_type is carla.LaneType.Driving or 
-                right_lanes[-1].get_right_lane().lane_type is carla.LaneType.Driving): 
+    while right_lanes and not(right_lanes[-1].get_left_lane() == None or 
+                right_lanes[-1].get_right_lane() == None or 
+                right_lanes[-1].get_left_lane().lane_type == carla.LaneType.Driving or 
+                right_lanes[-1].get_right_lane().lane_type == carla.LaneType.Driving): 
         
         if curr_lane.lane_id*right_lanes[-1].lane_id > 0: right_lanes.append(right_lanes[-1].get_right_lane()) 
         else: right_lanes.append(right_lanes[-1].get_left_lane())
@@ -203,23 +208,23 @@ def transform_location(loc, target_transform, inv = False, loc_CS = 'L', transfo
     Takes a location in the Carla left 
     """
 
-    if loc_CS is 'L':
+    if loc_CS == 'L':
         loc = switch_CoordinateSystem(np.append(loc,1))
-    elif loc_CS is 'R':
+    elif loc_CS == 'R':
         loc = np.append(loc,1)
     else:
         raise ValueError("Unrecognised parameters for location transformation")
 
 
     T = transform2mat(target_transform)
-    if inv is True:
+    if inv == True:
         tr_loc = np.dot(T, loc)
     else:    
         tr_loc = np.dot(np.linalg.inv(T), loc)
 
-    if transformloc_CS is 'L':
+    if transformloc_CS == 'L':
         return switch_CoordinateSystem(tr_loc)[:-1]
-    elif transformloc_CS is 'R':
+    elif transformloc_CS == 'R':
         return tr_loc[:-1]
     else:
         raise ValueError("Unrecognised parameters for location transformation")
@@ -229,7 +234,13 @@ def transform_location(loc, target_transform, inv = False, loc_CS = 'L', transfo
 def deg360(angle):
     return abs(angle%360)
 
-
+def numpy_to_multiarray(multiarray_type, np_array):
+    multiarray = multiarray_type()
+    multiarray.layout.dim = [MultiArrayDimension('dim%d' % i,
+                                                 np_array.shape[i],
+                                                 np_array.shape[i] * np_array.dtype.itemsize) for i in range(np_array.ndim)];
+    multiarray.data = np_array.reshape([1, -1])[0].tolist();
+    return multiarray
 
 # def get_nearestcar():
 

@@ -49,8 +49,8 @@ class CarlaEgoVehicle(object):
     def __init__(self):
         rospy.init_node('ego_vehicle', anonymous=True)
         self.host = rospy.get_param('/carla/host', '127.0.0.1')
-        self.port = rospy.get_param('/carla/port', '2000')
-        self.timeout = rospy.get_param('/carla/timeout', '2')
+        self.port = rospy.get_param('/carla/port', 2000)
+        self.timeout = rospy.get_param('/carla/timeout', 10)
         self.sensor_definition_file = rospy.get_param('~sensor_definition_file')
         self.world = None
         self.player = None
@@ -73,7 +73,7 @@ class CarlaEgoVehicle(object):
             quat = quaternion_from_euler(
                 math.radians(float(spawn_point[3])),
                 math.radians(float(spawn_point[4])),
-                math.radians(-float(spawn_point[5])))
+                math.radians(float(spawn_point[5])))
             pose.orientation.x = quat[0]
             pose.orientation.y = quat[1]
             pose.orientation.z = quat[2]
@@ -126,7 +126,7 @@ class CarlaEgoVehicle(object):
                 spawn_point.location.x = self.actor_spawnpoint.position.x
                 spawn_point.location.y = -self.actor_spawnpoint.position.y
                 spawn_point.location.z = self.actor_spawnpoint.position.z + \
-                    1  # spawn 2m above ground
+                    2  # spawn 2m above ground
                 quaternion = (
                     self.actor_spawnpoint.orientation.x,
                     self.actor_spawnpoint.orientation.y,
@@ -148,13 +148,11 @@ class CarlaEgoVehicle(object):
 
             else:
                 if self.player is not None:
-                    self.player.set_target_velocity(carla.Vector3D())
                     spawn_point = self.player.get_transform()
                     spawn_point.location.z += 2.0
                     spawn_point.rotation.roll = 0.0
                     spawn_point.rotation.pitch = 0.0
                     self.player.set_transform(spawn_point)
-                    self.player.set_target_velocity(carla.Vector3D())
                 while self.player is None:
                     spawn_points = self.world.get_map().get_spawn_points()
                     spawn_point = secure_random.choice(
@@ -225,7 +223,8 @@ class CarlaEgoVehicle(object):
                             sensor_spec['exposure_min_bright']))
                         bp.set_attribute('exposure_max_bright', str(
                             sensor_spec['exposure_max_bright']))
-                        bp.set_attribute('exposure_speed_up', str(sensor_spec['exposure_speed_up']))
+                        bp.set_attribute('exposure_speed_up', str(
+                            sensor_spec['exposure_speed_up']))
                         bp.set_attribute('exposure_speed_down', str(
                             sensor_spec['exposure_speed_down']))
                         bp.set_attribute('calibration_constant', str(
@@ -260,6 +259,9 @@ class CarlaEgoVehicle(object):
                         bp.set_attribute('lens_kcube', str(sensor_spec['lens_kcube']))
                         bp.set_attribute('lens_x_size', str(sensor_spec['lens_x_size']))
                         bp.set_attribute('lens_y_size', str(sensor_spec['lens_y_size']))
+                        bp.set_attribute('bloom_intensity', str(sensor_spec['bloom_intensity']))
+                        bp.set_attribute('lens_flare_intensity', str(
+                            sensor_spec['lens_flare_intensity']))
                 elif sensor_spec['type'].startswith('sensor.lidar'):
                     bp.set_attribute('range', str(sensor_spec['range']))
                     bp.set_attribute('rotation_frequency', str(sensor_spec['rotation_frequency']))
@@ -286,6 +288,10 @@ class CarlaEgoVehicle(object):
                     bp.set_attribute('noise_alt_bias', str(sensor_spec['noise_alt_bias']))
                     bp.set_attribute('noise_lat_bias', str(sensor_spec['noise_lat_bias']))
                     bp.set_attribute('noise_lon_bias', str(sensor_spec['noise_lon_bias']))
+                    try:
+                        bp.set_attribute('sensor_tick', str(sensor_spec['sensor_tick']))
+                    except KeyError:
+                        pass
                 elif sensor_spec['type'].startswith('sensor.other.imu'):
                     sensor_location = carla.Location(x=sensor_spec['x'], y=sensor_spec['y'],
                                                      z=sensor_spec['z'])
@@ -305,6 +311,10 @@ class CarlaEgoVehicle(object):
                     bp.set_attribute('noise_gyro_bias_x', str(sensor_spec['noise_gyro_bias_x']))
                     bp.set_attribute('noise_gyro_bias_y', str(sensor_spec['noise_gyro_bias_y']))
                     bp.set_attribute('noise_gyro_bias_z', str(sensor_spec['noise_gyro_bias_z']))
+                    try:
+                        bp.set_attribute('sensor_tick', str(sensor_spec['sensor_tick']))
+                    except KeyError:
+                        pass
                 elif sensor_spec['type'].startswith('sensor.other.radar'):
                     sensor_location = carla.Location(x=sensor_spec['x'], y=sensor_spec['y'],
                                                      z=sensor_spec['z'])
@@ -316,6 +326,10 @@ class CarlaEgoVehicle(object):
                     bp.set_attribute('vertical_fov', str(sensor_spec['vertical_fov']))
                     bp.set_attribute('points_per_second', str(sensor_spec['points_per_second']))
                     bp.set_attribute('range', str(sensor_spec['range']))
+                    try:
+                        bp.set_attribute('sensor_tick', str(sensor_spec['sensor_tick']))
+                    except KeyError:
+                        pass
             except KeyError as e:
                 rospy.logfatal(
                     "Sensor will not be spawned, because sensor spec is invalid: '{}'".format(e))

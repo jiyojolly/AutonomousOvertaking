@@ -26,7 +26,7 @@
     <node pkg="topic_tools" type="relay" name="initialpose_relay_$(arg role_name)" args="/initialpose /carla/$(arg role_name)/initialpose"/>
   </group>
 
-  <node pkg="ego_vehicle" type="ego_vehicle.py" name="ego_vehicle_$(arg role_name)" output="screen">
+  <node pkg="ego_vehicle" type="vehicle.py" name="ego_vehicle_$(arg role_name)" output="screen">
     <param name="sensor_definition_file" value="$(arg sensor_definition_file)" />
     <param name="param_definition_file" value="$(arg param_definition_file)" />
     <param name="vehicle_filter" value="$(arg vehicle_filter)" />

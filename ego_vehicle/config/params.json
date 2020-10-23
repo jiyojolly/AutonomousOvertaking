@@ -5,7 +5,7 @@
 	"Obstacle_L":3.0,
 	"X_limit":[-10,10],
 	"Y_limit":[-10,10],
-	"grid_res": 0.5,
+	"grid_res": 1,
 	"delta_vertex":0.5,
 	"d_zero":20.0,
 	"Tf":3.0,

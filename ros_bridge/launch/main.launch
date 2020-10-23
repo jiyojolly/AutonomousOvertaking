@@ -8,7 +8,7 @@
   <!-- Ego vehicle -->
   <arg name='role_name' default='ego_vehicle'/>
   <arg name="vehicle_filter" default='vehicle.audi.a2'/>
-  <arg name="spawn_point" default="-198,-55,2,0,0,270"/>
+  <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
   <!-- <arg name="spawn_point" default="10,0,2,0,0,0"/> -->
   <!-- <arg name="spawn_point" default="-4.7,-91.2,2.0,0,0,90"/> -->
 

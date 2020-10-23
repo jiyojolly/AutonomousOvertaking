@@ -35,9 +35,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from std_msgs.msg import Bool
 
-import artf_pot_funcs
-from artf_pot_funcs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
-import Utils
+from ego_vehicle.artf_pot_funcs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
+
 
 # You probably won't need this if you're embedding things in a tkinter plot...
 plt.ion()

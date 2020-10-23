@@ -2,7 +2,7 @@
 <launch>
   <arg name="role_name" default="ego_vehicle"/>
 
-  <node pkg="main_client" type="main_client.py" name="main_client_$(arg role_name)" output="screen">
+  <node pkg="main_client" type="client.py" name="main_client_$(arg role_name)" output="screen">
     <param name="role_name" value="$(arg role_name)"/>
   </node>
 

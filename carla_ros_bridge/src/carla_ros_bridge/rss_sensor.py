@@ -1,25 +1,28 @@
 #!/usr/bin/env python
 
 #
-# Copyright (c) 2018-2019 Intel Corporation
+# Copyright (c) 2020 Intel Corporation
 #
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 #
 """
-Classes to handle Carla spectator
+Class to handle rss sensor
 """
 
 from carla_ros_bridge.actor import Actor
 
 
-class Spectator(Actor):
+class RssSensor(Actor):
 
     """
-    Actor implementation details for spectators
+    Actor implementation details for a RSS sensor
+
+    As the RSS sensor in CARLA requires additional
+    utilization it's not handled as a sensor here.
     """
 
-    def __init__(self, carla_actor, parent, node):
+    def __init__(self, carla_actor, parent, node, _):
         """
         Constructor
 
@@ -30,7 +33,8 @@ class Spectator(Actor):
         :param node: node-handle
         :type node: carla_ros_bridge.CarlaRosBridge
         """
-        super(Spectator, self).__init__(carla_actor=carla_actor,
+
+        super(RssSensor, self).__init__(carla_actor=carla_actor,
                                         parent=parent,
-                                        prefix='spectator',
-                                        node=node)
+                                        node=node,
+                                        prefix="rss")

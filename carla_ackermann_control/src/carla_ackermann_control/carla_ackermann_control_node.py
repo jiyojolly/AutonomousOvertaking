@@ -257,13 +257,13 @@ class CarlaAckermannControl(object):
         """
         set target accel
         """
-        # epsilon = 0.00001
-        # # if speed is set to zero, then use max decel value
-        # if self.info.target.speed_abs < epsilon:
-        #     self.info.target.accel = -self.info.restrictions.max_decel
-        # else:
-        self.info.target.accel = numpy.clip(
-            target_accel, -self.info.restrictions.max_decel, self.info.restrictions.max_accel)
+        epsilon = 0.00001
+        # if speed is set to zero, then use max decel value
+        if self.info.target.speed_abs < epsilon:
+            self.info.target.accel = -self.info.restrictions.max_decel
+        else:
+            self.info.target.accel = numpy.clip(
+                target_accel, -self.info.restrictions.max_decel, self.info.restrictions.max_accel)
 
     def set_target_jerk(self, target_jerk):
         """
@@ -361,43 +361,43 @@ class CarlaAckermannControl(object):
         The speed controller is mainly responsible to keep the speed.
         On expected speed changes, the speed control loop is disabled
         """
-        # epsilon = 0.00001
-        # target_accel_abs = abs(self.info.target.accel)
-        # if target_accel_abs < self.info.restrictions.min_accel:
-        #     if self.info.status.speed_control_activation_count < 5:
-        #         self.info.status.speed_control_activation_count += 1
-        # else:
-        #     if self.info.status.speed_control_activation_count > 0:
-        #         self.info.status.speed_control_activation_count -= 1
-        # # set the auto_mode of the controller accordingly
-        # self.speed_controller.auto_mode = self.info.status.speed_control_activation_count >= 5
+        epsilon = 0.00001
+        target_accel_abs = abs(self.info.target.accel)
+        if target_accel_abs < self.info.restrictions.min_accel:
+            if self.info.status.speed_control_activation_count < 5:
+                self.info.status.speed_control_activation_count += 1
+        else:
+            if self.info.status.speed_control_activation_count > 0:
+                self.info.status.speed_control_activation_count -= 1
+        # set the auto_mode of the controller accordingly
+        self.speed_controller.auto_mode = self.info.status.speed_control_activation_count >= 5
 
-        # if self.speed_controller.auto_mode:
-        #     self.speed_controller.setpoint = self.info.target.speed_abs
-        #     self.info.status.speed_control_accel_delta = self.speed_controller(
-        #         self.info.current.speed_abs)
+        if self.speed_controller.auto_mode:
+            self.speed_controller.setpoint = self.info.target.speed_abs
+            self.info.status.speed_control_accel_delta = self.speed_controller(
+                self.info.current.speed_abs)
 
-        #     # clipping borders
-        #     clipping_lower_border = -target_accel_abs
-        #     clipping_upper_border = target_accel_abs
-        #     # per definition of ackermann drive: if zero, then use max value
-        #     if target_accel_abs < epsilon:
-        #         clipping_lower_border = -self.info.restrictions.max_decel
-        #         clipping_upper_border = self.info.restrictions.max_accel
-        #     self.info.status.speed_control_accel_target = numpy.clip(
-        #         self.info.status.speed_control_accel_target +
-        #         self.info.status.speed_control_accel_delta,
-        #         clipping_lower_border, clipping_upper_border)
-        # else:
-        self.info.status.speed_control_accel_delta = 0.
-        self.info.status.speed_control_accel_target = self.info.target.accel
+            # clipping borders
+            clipping_lower_border = -target_accel_abs
+            clipping_upper_border = target_accel_abs
+            # per definition of ackermann drive: if zero, then use max value
+            if target_accel_abs < epsilon:
+                clipping_lower_border = -self.info.restrictions.max_decel
+                clipping_upper_border = self.info.restrictions.max_accel
+            self.info.status.speed_control_accel_target = numpy.clip(
+                self.info.status.speed_control_accel_target +
+                self.info.status.speed_control_accel_delta,
+                clipping_lower_border, clipping_upper_border)
+        else:
+            self.info.status.speed_control_accel_delta = 0.
+            self.info.status.speed_control_accel_target = self.info.target.accel
 
     def run_accel_control_loop(self):
         """
         Run the PID control loop for the acceleration
         """
         # setpoint of the acceleration controller is the output of the speed controller
-        self.accel_controller.setpoint = self.info.target.accel
+        self.accel_controller.setpoint = self.info.status.speed_control_accel_target
         self.info.status.accel_control_pedal_delta = self.accel_controller(
             self.info.current.accel)
         # @todo: we might want to scale by making use of the the abs-jerk value

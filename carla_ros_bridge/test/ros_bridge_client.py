@@ -9,6 +9,7 @@
 """
 Class for testing nodes
 """
+# pylint: disable=no-member
 
 import unittest
 import rospy
@@ -26,6 +27,7 @@ from carla_msgs.msg import (CarlaEgoVehicleStatus, CarlaEgoVehicleInfo, CarlaWor
 
 PKG = 'test_roslaunch'
 TIMEOUT = 20
+
 
 class TestClock(unittest.TestCase):
 
@@ -103,7 +105,6 @@ class TestClock(unittest.TestCase):
         Tests IMU sensor node
         """
         rospy.init_node('test_node', anonymous=True)
-        print("testing  for ros bridge")
         msg = rospy.wait_for_message("/carla/ego_vehicle/imu", Imu, timeout=15)
         self.assertEqual(msg.header.frame_id, "ego_vehicle/imu")
         self.assertNotEqual(msg.linear_acceleration, 0.0)
@@ -141,6 +142,15 @@ class TestClock(unittest.TestCase):
         msg = rospy.wait_for_message(
             "/carla/ego_vehicle/lidar/lidar1/point_cloud", PointCloud2, timeout=TIMEOUT)
         self.assertEqual(msg.header.frame_id, "ego_vehicle/lidar/lidar1")
+
+    def test_semantic_lidar(self):
+        """
+        Tests semantic_lidar sensor node
+        """
+        rospy.init_node('test_node', anonymous=True)
+        msg = rospy.wait_for_message(
+            "/carla/ego_vehicle/semantic_lidar/lidar1/point_cloud", PointCloud2, timeout=TIMEOUT)
+        self.assertEqual(msg.header.frame_id, "ego_vehicle/semantic_lidar/lidar1")
 
     def test_radar(self):
         """
