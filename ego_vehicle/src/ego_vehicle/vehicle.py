@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from std_msgs.msg import Bool
 
-from ego_vehicle.artf_pot_funcs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
+from ego_vehicle.overtake_algs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
 
 
 # You probably won't need this if you're embedding things in a tkinter plot...
@@ -90,9 +90,11 @@ class EgoVehicle(CarlaEgoVehicle):
 
         # Plotting variables
         # Add fig and axes for contour and 3d surface plots
-        self.fig_3d = plt.figure()
-        self.ax_3d = self.fig_3d.add_subplot(111, projection='3d')
-        self.ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Risk Map")
+        self.plot_3d = False
+        if self.plot_3d == True:
+            self.fig_3d = plt.figure()
+            self.ax_3d = self.fig_3d.add_subplot(111, projection='3d')
+            self.ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Risk Map")
 
         self.fig_2d = plt.figure()
         self.ax_2d = self.fig_2d.add_subplot(111)
@@ -171,7 +173,6 @@ class EgoVehicle(CarlaEgoVehicle):
     def plot_all(self, z, pause=False):
 
         #Clear previous plots
-        if self.surf is not None: self.surf.remove()
         if self.ax_2d is not None: self.ax_2d.clear()
         self.ax_2d.set(xlabel="x (Ego Vehicle Frame)", ylabel="y (Ego Vehicle Frame)", title="View from the top")
         # Plot lane markings
@@ -205,7 +206,10 @@ class EgoVehicle(CarlaEgoVehicle):
 
 
         # Plot potential field as a 3d surface plot
-        self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
+        if self.plot_3d == True:
+            #Clear previous plots
+            if self.surf is not None: self.surf.remove()
+            self.surf = self.ax_3d.plot_surface(self.pos_meshgrid[0], self.pos_meshgrid[1], z, cmap=plt.cm.coolwarm, antialiased=True, linewidth=0, rstride=1, cstride=1)
         # Print min max of pot field
         # print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
 
@@ -240,6 +244,7 @@ class EgoVehicle(CarlaEgoVehicle):
         client = carla.Client(self.host, self.port)
         client.set_timeout(self.timeout)
         self.world = client.get_world()
+        self.world.set_weather(carla.WeatherParameters.CloudySunset)
         self.restart()
         # self.update_pot()
 

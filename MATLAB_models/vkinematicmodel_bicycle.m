@@ -36,8 +36,8 @@ function dx = vkinematicmodel_bicycle(x,u,obstcl)
     %body
 %     m = 1750;
 %     J = 2500;
-    L = 2.7;
-    l_F = 1.43;
+    L = 3.705;
+    l_F = 1.2525;
     l_R = L-l_F;
  
     %street

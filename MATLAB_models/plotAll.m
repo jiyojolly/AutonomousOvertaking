@@ -1,18 +1,13 @@
-function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred)
+function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred, ego_car)
 
-%     coder.extrinsic('fcn'); 
-%     coder.extrinsic('fimplicit');
-    
     clf;
-    hold on;
-    x_ref_curr
-    x_pred
-    mv_pred
-     
+    hold on;     
 
     %Plot Ego car
     if ~isscalar(x_curr)
         scatter(x_curr(1),x_curr(2), 'd')
+        pgon = polyshape(ego_car(:,1),ego_car(:,2));
+        plot(pgon);
     end
 
     %Plot MPC Referece  

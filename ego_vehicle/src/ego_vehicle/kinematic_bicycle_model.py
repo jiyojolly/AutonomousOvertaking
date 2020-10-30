@@ -2,8 +2,8 @@ import numpy as np
 
 
 def bicycle_model(x, t, u):
-	L = 2.7
-	L_F = 1.43
+	L = 3.705
+	L_F = 1.2525
 	L_R = L - L_F
 
 	#Initialize dx (derivatives) with zeroes

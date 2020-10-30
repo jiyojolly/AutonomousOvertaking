@@ -1,16 +1,22 @@
 clf;
 hold on;
-n= 2;L = 5; W = 2; f =  nthroot(2,n); alpha = deg2rad(30);
+n= 2;L = 10; W = 5; f =  nthroot(2,n); alpha = deg2rad(90);
 rec = [ -L/2 -W/2; 
         -L/2  W/2;
         L/2   W/2;
         L/2+5 0;
         L/2  -W/2;
-        -L/2 -W/2;]
+        -L/2 -W/2;];
+% rec = [ -L/2 -W/2; 
+%         -L/2  W/2;
+%         L/2   W/2;
+%         L/2  -W/2;
+%         -L/2 -W/2;];    
+    
 R = [cos(alpha) -sin(alpha);
      sin(alpha) cos(alpha);];
 
-rec = rec*R
+rec = (R*rec')';
 plot(rec(:,1),rec(:,2))
 
 % Ellipse parameters
@@ -20,4 +26,4 @@ a = ellip_coeff_struct.a ; b = ellip_coeff_struct.b; xe = ellip_coeff_struct.X0_
 
 
 ellip = @(x,y) ((((x-xe).*cos(phi) - (y-ye).*sin(phi)))./a).^n + ((((x-xe).*sin(phi) + (y-ye).*cos(phi)))./b).^n - 1;
-fimplicit(ellip, [-10 10 -10 10])
+fimplicit(ellip, [-15 15 -10 10])

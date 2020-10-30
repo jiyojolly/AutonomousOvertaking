@@ -4,8 +4,7 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 """
-Functions for generating artificial potential fields
-
+Classes and associated methods that perform risk map calculations, reachable set and decision making. 
 """
 #Std packages
 import rospy
@@ -89,23 +88,33 @@ class CarPotential(object):
         self.ego_car_location = None
         self.ego_car_vel = None
         self.ego_plgn = None
+        self.ego_plgn_world = None
         self.obstcl_vehicles_locs = []
         self.obstcl_vehicles_vels = []
         self.obstcl_vehicles_plgns = []
         self.obstcl_vehicles_plgns_world = []
 
          #Initialize publisher
-        self.pub = rospy.Publisher('Obstacle', Float32MultiArray, queue_size = 2)
+        self.pub_obstacle = rospy.Publisher('Obstacle', Float32MultiArray, queue_size = 2)
+        self.pub_ego = rospy.Publisher('Ego_car', Float32MultiArray, queue_size = 2)
 
 
-    def publish(self):
+    def publish_obstcl(self):
         data_np = np.asarray(self.obstcl_vehicles_plgns_world[0].coords)[2:,:]
         data_np = np.expand_dims(data_np,axis=0)
-        # print(data_np.shape)
         data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
-        # print(data_MArr)
         data_to_send = data_MArr # assign the array with the value you want to send
-        self.pub.publish(data_to_send)
+        self.pub_obstacle.publish(data_to_send)
+
+    def publish_ego(self):
+        data_ego = np.asarray(self.ego_plgn_world.coords)
+        data_ego = np.expand_dims(data_ego,axis=0)
+        # print(data_ego)
+        # print(data_ego.shape)
+        data_to_send = utils.numpy_to_multiarray(Float32MultiArray, data_ego)
+        self.pub_ego.publish(data_to_send)
+
+
 
     # @profile
     def update_state(self, ego_car, obstcl_vehicles, json_params):
@@ -157,7 +166,10 @@ class CarPotential(object):
         v = ego_car.get_velocity()
         self.ego_car_vel = math.sqrt(v.x**2 + v.y**2 + v.z**2)
         ego_box = get_boundingbox_transformed(ego_car, frame_of_ref)
+        ego_box_world = get_boundingbox_transformed(ego_car, carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0)))
         self.ego_plgn = LinearRing([(ego_box[0][0:2]), (ego_box[1][0:2]), (ego_box[3][0:2]), (ego_box[2][0:2])])
+        self.ego_plgn_world = LinearRing([(ego_box_world[0][0:2]), (ego_box_world[1][0:2]), (ego_box_world[3][0:2]), (ego_box_world[2][0:2])])
+        self.publish_ego()
 
         if obstcl_vehicles:
             #Obstacle Vehicles in Ego car frame
@@ -193,7 +205,7 @@ class CarPotential(object):
             # print(obstcl_vehicles_boxes_carla_T)
             self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_ego]
             self.obstcl_vehicles_plgns_world = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_world]
-            self.publish()
+            self.publish_obstcl()
     
 
     # @profile
@@ -386,6 +398,7 @@ class TargetStateSelection(object):
         self.ref_target_safe_reach = np.zeros(2)
 
         #Overtake mode 
+        self.current_behavior = 0
         self.overtake_mode = 0
 
         
@@ -408,6 +421,20 @@ class TargetStateSelection(object):
         self.ego_car = ego_car
         self.obstcl_cars = obstcl_cars
         self.set_safe_reach_np = np.transpose(np.array(set_safe_reach))
+
+    def decide_behavior(self):
+
+        if self.get_nearest_lead_car(): 
+            # if self.current_behavior == 0:
+            behavior = 1 
+        else: 
+            behavior = 0
+        # else self.obstcl_cars && self.current_behavior == 1:
+        #     obstcl_car = get_nearest_lead_car()     
+
+        self.current_behavior  = behavior 
+        rospy.logwarn(f"Current behaviour : {self.current_behavior}")
+        return behavior
         
 
                 
@@ -420,14 +447,15 @@ class TargetStateSelection(object):
         #overtake_mode = 1  -- overtake
         #overtake_mode = 2  -- cancel overtake
         ''' 
+        overtake_flag = self.decide_behavior()
 
-        if self.obstcl_cars:
+        if overtake_flag:
             overtake_mode = 1
         else:
             overtake_mode = 0
 
         if overtake_mode == 0:
-            target_loc_obscl_frame =  np.array([5.0, 0, 0])
+            target_loc_obscl_frame =  np.array([10.0, 0, 0])
             loc_world = utils.transform_location(target_loc_obscl_frame, self.ego_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
@@ -438,7 +466,7 @@ class TargetStateSelection(object):
 
         elif overtake_mode == 1:
             nearest_lead_car = self.get_nearest_lead_car()
-            target_loc_obscl_frame =  np.array([5.0, 0, 0])
+            target_loc_obscl_frame =  np.array([10.0, 0, 0])
             loc_world = utils.transform_location(target_loc_obscl_frame, nearest_lead_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
