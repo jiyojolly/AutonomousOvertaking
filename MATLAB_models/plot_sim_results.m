@@ -2,8 +2,8 @@ clear;
 clc;
 clf;
 close all;
-load('simdata/2020-10-29 18:47:34_sim_out.mat');
-start_time_idx = 60; 
+load('simdata/2020-10-30 12:04:15_sim_out.mat');
+start_time_idx = 100; 
 
 %Reference state data
 x_ref_timeseries = timeseries(out.x_ref_curr.Data(start_time_idx:end,1:2),...
