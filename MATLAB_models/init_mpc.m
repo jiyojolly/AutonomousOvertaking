@@ -2,8 +2,8 @@ clear;
 nx = 4; ny = 4; nu = 2;
 T_horizon = 1;
 Ts = 0.05;
-PredHor = T_horizon/Ts
-CntrlHor = PredHor/2
+PredHor = T_horizon/Ts;
+CntrlHor = PredHor/2;
 enable_MPC = 0;
 
 obstcl_ellip_order = 6;

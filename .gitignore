@@ -12,4 +12,5 @@ MATLAB_models/custom_msgs/geometry_msgs
 MATLAB_models/custom_msgs/custom_msgs
 MATLAB_models/custom_msgs/matlab_gen
 *.slx.autosave
+*.slx.original
 *.slxc

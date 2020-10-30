@@ -2,7 +2,7 @@ clear;
 clc;
 clf;
 close all;
-load('simdata/2020-10-29 18:36:00_sim_out.mat');
+load('simdata/2020-10-29 18:47:34_sim_out.mat');
 start_time_idx = 60; 
 
 %Reference state data
