@@ -3,8 +3,8 @@
 	"Yukawa_alpha":0.5,
 	"Obstacle_W":1.5,
 	"Obstacle_L":3.0,
-	"X_limit":[-20,10],
-	"Y_limit":[-20,10],
+	"X_limit":[-20,20],
+	"Y_limit":[-10,10],
 	"grid_res": 0.5,
 	"delta_vertex":0.5,
 	"d_zero":20.0,
@@ -19,5 +19,8 @@
 	"t_reach_horizon":1.0,
 	"v_des": 20,         
 	"ax_max": 0.0,      
-	"delta_max": 0.52
+	"delta_max": 0.52,
+
+	"d_safe_overtake": 10.0,
+	"d_safe_cruise": 5.0
 } 

@@ -4,6 +4,7 @@ Shapely
 matplotlib
 joblib
 transforms3d
+python-statemachine
 
 ###### Requirements with Version Specifiers ######
 numpy >= 1.16.6

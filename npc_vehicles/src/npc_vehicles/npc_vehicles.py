@@ -36,7 +36,7 @@ class NPCVehicles(object):
         self.client = None
         self.world = None
         self.settings = None
-        self._actor_filter = 'vehicle.*'
+        self._actor_filter = rospy.get_param('/npc_vehicles/vehicle_filter', 'vehicle.*')
  
         self.npc_agents = []
         self.spawn_points = [] 

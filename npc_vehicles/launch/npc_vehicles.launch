@@ -3,15 +3,17 @@
   <arg name='host' default='localhost'/>
   <arg name='port' default='2000'/>
   <arg name='timeout' default='2'/>
+  <arg name='npc_spawn_points' default='[[-198,-65,2,-90]]'/>
+  <arg name='npc_spawn_vels' default='[[-198,-65,2,-90]]'/>
+  <arg name='npc_autopilot' default='false'/>
+  <arg name='npc_vehicle_filter' default='vehicle.*'/>
   
   <param name="/carla/host" value="$(arg host)" />
   <param name="/carla/port" value="$(arg port)" />
   <param name="/carla/timeout" value="$(arg timeout)" />
-
-  <!-- <param name="/npc_vehicles/spawn_locs" value="[[-198,-75,2,90]]" /> -->
-  <!-- <param name="/npc_vehicles/spawn_locs" value="[[-198,-75,2,-90], [-198,-65,2,-90], [-198,-45,2,-90]]" /> -->
-  <param name="/npc_vehicles/spawn_locs" value="[[-198,-65,2,-90]]" />
-  <param name="/npc_vehicles/autopilot" value='false' />
+  <param name="/npc_vehicles/spawn_locs" value="$(arg npc_spawn_points)" />
+  <param name="/npc_vehicles/autopilot" value='$(arg npc_autopilot)' />
+  <param name="/npc_vehicles/vehicle_filter" value='$(arg npc_vehicle_filter)' />
 
   <node pkg="npc_vehicles" type="npc_vehicles.py" name="npc_vehicles" output="screen">
   </node>

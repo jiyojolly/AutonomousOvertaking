@@ -81,7 +81,7 @@ class EgoVehicle(CarlaEgoVehicle):
         self.car_potential = CarPotential()
         self.lane_potential = LanePotential()
         self.reach_set = ReachableSet(self.json_params)
-        self.target_selection = TargetStateSelection()
+        self.target_selection = TargetStateSelection(self.json_params)
 
         # Sets 
         self.L_safe = []
@@ -94,7 +94,7 @@ class EgoVehicle(CarlaEgoVehicle):
         if self.plot_3d == True:
             self.fig_3d = plt.figure()
             self.ax_3d = self.fig_3d.add_subplot(111, projection='3d')
-            self.ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Risk Map")
+            self.ax_3d.set(xlabel="x", ylabel="y", zlabel="f(x, y)", title="3D Surface plot of Combined Risk Map")
 
         self.fig_2d = plt.figure()
         self.ax_2d = self.fig_2d.add_subplot(111)
@@ -174,35 +174,40 @@ class EgoVehicle(CarlaEgoVehicle):
 
         #Clear previous plots
         if self.ax_2d is not None: self.ax_2d.clear()
-        self.ax_2d.set(xlabel="x (Ego Vehicle Frame)", ylabel="y (Ego Vehicle Frame)", title="View from the top")
+        self.ax_2d.set(xlabel="x", ylabel="y", title="Bird's eye view (Ego car frame)")
+
         # Plot lane markings
-        [self.ax_2d.plot(lane[0], lane[1], marker='+') for lane in self.lane_potential.lane_edges_transformed]
+        #For label
+        self.ax_2d.plot(self.lane_potential.lane_edges_transformed[0][0], self.lane_potential.lane_edges_transformed[0][1], marker='_', label='Lane Edges', color='#ffcccb')
+        [self.ax_2d.plot(lane[0], lane[1], marker='_', color='#ffcccb') for lane in self.lane_potential.lane_edges_transformed]
 
         #Plot ego vehicle and its polygon
-        self.ax_2d.plot(self.car_potential.ego_car_location[0], self.car_potential.ego_car_location[1], marker='x')
-        self.ax_2d.plot(np.asarray(self.car_potential.ego_plgn)[:,0], np.asarray(self.car_potential.ego_plgn)[:,1])
+        self.ax_2d.plot(self.car_potential.ego_car_location[0], self.car_potential.ego_car_location[1], marker='x', color='#0000ff' )
+        self.ax_2d.plot(np.asarray(self.car_potential.ego_plgn)[:,0], np.asarray(self.car_potential.ego_plgn)[:,1], label='Ego Car', color='#0000ff')
         
 
         # Plot obstacle vehicle and its polygons
         if self.car_potential.obstcl_vehicles_locs:
-            [self.ax_2d.plot(obst_car[0], obst_car[1], marker='x') for obst_car in self.car_potential.obstcl_vehicles_locs]
-            [self.ax_2d.plot(np.asarray(obst_car_plgn)[:,0],np.asarray(obst_car_plgn)[:,1]) for obst_car_plgn in self.car_potential.obstcl_vehicles_plgns]
+            #For label
+            self.ax_2d.plot(self.car_potential.obstcl_vehicles_locs[0][0], self.car_potential.obstcl_vehicles_locs[0][1], marker='x',label='Obstacle Car',color='r')
+            [self.ax_2d.plot(obst_car[0], obst_car[1], marker='x',color='r') for obst_car in self.car_potential.obstcl_vehicles_locs ]
+            [self.ax_2d.plot(np.asarray(obst_car_plgn)[:,0],np.asarray(obst_car_plgn)[:,1], color='r') for obst_car_plgn in self.car_potential.obstcl_vehicles_plgns]
         
             # Plot Nearest point to obstable
-            [self.ax_2d.plot([shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].x, 
-                                shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].x],
-                             [shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].y, 
-                                shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
+            # [self.ax_2d.plot([shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].x, 
+            #                     shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].x],
+            #                  [shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[0].y, 
+            #                     shapely.ops.nearest_points(Point(self.car_potential.ego_car_location), obst_car)[1].y]) for obst_car in self.car_potential.obstcl_vehicles_plgns]
 
         #Plot Reachable / safe set
-        if self.L_safe: self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='c')
+        if self.L_safe: self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='#D3D3D3', label='Safe Set')
 
-        self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1])
+        self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1], color='#ffa500', label='Reach Set')
 
-        if self.L_safe_reach:self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='g')
+        if self.L_safe_reach:self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='#4dff4d', label='Safe, Reach Set')
 
-        self.ax_2d.scatter(self.target_selection.final_ref_target[0], self.target_selection.final_ref_target[1], marker='x', color='g')
-        self.ax_2d.scatter(self.target_selection.ref_target_safe_reach[0] , self.target_selection.ref_target_safe_reach[1], marker='x', color='y')
+        self.ax_2d.scatter(self.target_selection.ref_target_safe_reach[0] , self.target_selection.ref_target_safe_reach[1], marker='x', color='#cdb332', label='Intd. MPC Target')
+        self.ax_2d.scatter(self.target_selection.final_ref_target[0], self.target_selection.final_ref_target[1], marker='x', color='#008000', label='Final Target')
 
 
         # Plot potential field as a 3d surface plot
@@ -213,18 +218,22 @@ class EgoVehicle(CarlaEgoVehicle):
         # Print min max of pot field
         # print("Details of Mesh grid values: Shape={:s}, Min z value={:.2f}, Max z value={:.2f}".format(z.shape, np.amin(z), np.amax(z)))
 
-        # #Set axes limits of all plots
-        self.ax_2d.set_xlim(-30,30)
-        self.ax_2d.set_ylim(-30,30)
-        # ax_3d.set_xlim(xlims[0],xlims[1])
-        # ax_3d.set_ylim(ylims[0],ylims[1])
-        # ax_3d.set_zlim(zlims[0],zlims[1])
-            
+        #Set axes limits of all plots
+        self.ax_2d.set_xlim(-10,20)
+        self.ax_2d.set_ylim(-20,20)
+        #Set legend
+        self.ax_2d.legend()  
+        
+        if self.plot_3d == True:
+            self.ax_3d.set_xlim(-20,20)
+            self.ax_3d.set_ylim(-20,20)
+            self.ax_3d.set_zlim(-5,40)
+          
         
         # self.fig_3d.canvas.draw()
         self.fig_2d.canvas.draw()
         if pause:
-            raw_input("Press Enter to continue...")
+            input("Press Enter to continue...")
         
 
     def run(self):

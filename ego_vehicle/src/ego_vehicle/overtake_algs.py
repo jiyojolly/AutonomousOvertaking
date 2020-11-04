@@ -17,6 +17,7 @@ import carla
 from shapely.geometry import LineString, Polygon, LinearRing, Point, box, asPoint
 import shapely.ops
 from joblib import Parallel, delayed
+from statemachine import StateMachine, State
 
 #custom packages
 import utils
@@ -382,62 +383,103 @@ class TargetStateSelection(object):
         Publishes the optimal(safe, reachable) reference target via ROS topic
 
     """
-    def __init__(self):
+    def __init__(self, json_params):
         super(TargetStateSelection, self).__init__()
 
         #Initialize publisher
-        self.pub = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
+        self.pub_xref = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
+        self.pub_pdes = rospy.Publisher('P_des', Float64Arr4, queue_size = 2)
+
+        self.d_safe_overtake = json_params["d_safe_overtake"]
+        self.d_safe_cruise = json_params["d_safe_cruise"]
         
         #Instance variables
         self.ego_car = None
         self.obstcl_cars = []
         self.set_safe_reach_np = None
-
+        self.nearest_car = None
+        self.nearest_car_loc_ego = None
+        
         #Final Targets
         self.final_ref_target = np.zeros(2)
         self.ref_target_safe_reach = np.zeros(2)
 
-        #Overtake mode 
-        self.current_behavior = 0
-        self.overtake_mode = 0
 
-        
-    def publish(self, X_ref):
-        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
-        data_to_send.data = X_ref # assign the array with the value you want to send
-        self.pub.publish(data_to_send)
 
-    def get_nearest_lead_car(self):
-        """ 
-        The logic will be expanded to check for nearest 
-        lead car in case of many car scenario
-        """
-        if self.obstcl_cars:
-            return self.obstcl_cars[0]
-        else:
-            return None
+        #Behaviour Selection
+        class BehaviourSM(StateMachine):
+            lane_keeping = State('Lane Keeping', initial=True)
+            overtaking = State('Overtaking')
+            
+            overtake = lane_keeping.to(overtaking)
+            lane_keep = overtaking.to(lane_keeping)
+
+        self.behaviour = BehaviourSM()
 
     def update_state(self, ego_car, obstcl_cars, set_safe_reach):
         self.ego_car = ego_car
         self.obstcl_cars = obstcl_cars
         self.set_safe_reach_np = np.transpose(np.array(set_safe_reach))
+        
+        self.get_nearest_car()
+
+    def publish(self, X_ref, final_ref_target_world):
+        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
+        data_to_send.data = X_ref # assign the array with the value you want to send
+        self.pub_xref.publish(data_to_send)
+        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
+        data_to_send.data = np.append(final_ref_target_world,0.0) # assign the array with the value you want to send
+        self.pub_pdes.publish(data_to_send)
+
+    def get_nearest_car(self):
+        """ 
+        The logic will be expanded to check for nearest 
+        lead car in case of many car scenario
+        """
+        obstcl_car_loc = None
+        if self.obstcl_cars:
+            obstcl_car_loc_w = self.obstcl_cars[0].get_location()
+            obstcl_car_loc_ego = utils.transform_location(np.array([obstcl_car_loc_w.x, obstcl_car_loc_w.y, obstcl_car_loc_w.z]),
+                                                         self.ego_car.get_transform(), loc_CS = 'L')
+            d = np.linalg.norm(obstcl_car_loc_ego)
+            if d < 20: 
+                self.nearest_car_loc_ego  = obstcl_car_loc_ego
+                self.nearest_car = self.obstcl_cars[0]
+            else:
+                return None
+        else:
+            return None
+
+    def check_overtake_complete(self):
+
+        d = np.linalg.norm(self.final_ref_target)
+        if d<1.0:
+            return True
+        else:
+            return False
+
 
     def decide_behavior(self):
 
-        if self.get_nearest_lead_car(): 
-            # if self.current_behavior == 0:
-            behavior = 1 
-        else: 
-            behavior = 0
-        # else self.obstcl_cars && self.current_behavior == 1:
-        #     obstcl_car = get_nearest_lead_car()     
+        if self.nearest_car: 
+            if self.nearest_car_loc_ego[0] > 0: 
+                    if not(self.behaviour.is_overtaking):
+                        self.behaviour.overtake()
+                    else: pass 
+            elif self.check_overtake_complete():
+                    if not(self.behaviour.is_lane_keeping):
+                        self.behaviour.lane_keep()
+                    else: pass
+            else:
+                pass
 
-        self.current_behavior  = behavior 
-        rospy.logwarn(f"Current behaviour : {self.current_behavior}")
-        return behavior
-        
-
-                
+        # else if self.behaviour.is_overtaking : 
+        else:
+            if not(self.behaviour.is_lane_keeping):
+               self.behaviour.lane_keep()
+            else: pass
+   
+        rospy.logwarn(f"Current behaviour : {self.behaviour.current_state}")
 
     def update_ref(self, world_map):
         '''
@@ -447,15 +489,11 @@ class TargetStateSelection(object):
         #overtake_mode = 1  -- overtake
         #overtake_mode = 2  -- cancel overtake
         ''' 
-        overtake_flag = self.decide_behavior()
+        self.decide_behavior()
 
-        if overtake_flag:
-            overtake_mode = 1
-        else:
-            overtake_mode = 0
-
-        if overtake_mode == 0:
-            target_loc_obscl_frame =  np.array([10.0, 0, 0])
+        #Lane keeping mode    
+        if self.behaviour.is_lane_keeping:
+            target_loc_obscl_frame =  np.array([self.d_safe_cruise, 0, 0])
             loc_world = utils.transform_location(target_loc_obscl_frame, self.ego_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
@@ -464,10 +502,10 @@ class TargetStateSelection(object):
             rospy.logwarn(f"Final Target Ref world frame: {final_ref_target_world}")
             # print(final_ref_target_world)
 
-        elif overtake_mode == 1:
-            nearest_lead_car = self.get_nearest_lead_car()
-            target_loc_obscl_frame =  np.array([10.0, 0, 0])
-            loc_world = utils.transform_location(target_loc_obscl_frame, nearest_lead_car.get_transform(), inv = True, loc_CS = 'R')
+        #Overtake mode
+        elif self.behaviour.is_overtaking:
+            target_loc_obscl_frame =  np.array([self.d_safe_overtake, 0, 0])
+            loc_world = utils.transform_location(target_loc_obscl_frame, self.nearest_car.get_transform(), inv = True, loc_CS = 'R')
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
@@ -496,15 +534,14 @@ class TargetStateSelection(object):
             rospy.logwarn(f"Target Ref for MPC in Ego frame: {X_ref}")
         else:
             # self.ref_target_safe_reach = r
-            X_ref = [0.0, 0.0, 0.0, 4.0]
-
+            X_ref = np.array([0.0, 0.0, 0.0, 4.0])
 
         # Transform to world frame before publishing..
         x_ref_target_world = utils.transform_location( np.array((X_ref[0],X_ref[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
         x_ref_target_world = x_ref_target_world[:2]
         X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
         rospy.logwarn(f"Target Ref for MPC in world frame: {X_ref_target_world}")
-        self.publish(X_ref_target_world)
+        self.publish(X_ref_target_world, final_ref_target_world)
 
 
 

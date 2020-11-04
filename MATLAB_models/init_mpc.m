@@ -21,7 +21,7 @@ mpc_planner.Model.StateFcn = "vkinematicmodel_bicycle";
 mpc_planner.Model.IsContinuousTime = true;
 mpc_planner.Model.NumberOfParameters = 1;
 mpc_planner.Optimization.CustomIneqConFcn = "constraint_obstcl_avoid";
-mpc_planner.Jacobian.CustomIneqConFcn = "constraint_obstcl_avoid_jacobian";
+% mpc_planner.Jacobian.CustomIneqConFcn = "constraint_obstcl_avoid_jacobian";
 
 %Apply limits on input
 mpc_planner.ManipulatedVariables(1).Min = -5;

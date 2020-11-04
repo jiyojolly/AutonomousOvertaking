@@ -1,4 +1,4 @@
-function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred, ego_car)
+function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred, ego_car, P_des)
 
     clf;
     hold on;     
@@ -13,6 +13,11 @@ function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred, ego_c
     %Plot MPC Referece  
     if ~isscalar(x_ref_curr)
         scatter(x_ref_curr(1),x_ref_curr(2),'x','MarkerFaceColor',[0 .7 .7])
+    end
+    
+    %Plot Desired position  
+    if ~isscalar(P_des)
+        scatter(P_des(1),P_des(2),'x','MarkerFaceColor',[0 .7 .7])
     end
 
     %Plot MPC predicted path      

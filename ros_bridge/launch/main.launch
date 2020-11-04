@@ -43,16 +43,29 @@
 <!--   <include file="$(find carla_ackermann_control)/launch/carla_ackermann_control.launch">
   </include> -->
 
-
-
   <include file="$(find main_client)/launch/main_client.launch">
     <arg name='role_name' value='$(arg role_name)'/>
   </include>
 
+
+<!-- NPC vehicles -->
+<arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+<arg name="npc_spawn_vels" default="[ 2.0 ]"/>
+<arg name="npc_autopilot" default="false"/>
+<!-- <arg name="npc_spawn_points" defau lt="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
+<arg name="npc_spawn_vels" default="[2.0, 3.0, 2.0]"/>
+<arg name="npc_autopilot" default="false"/> -->
+
+ <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
+ 
   <include file="$(find npc_vehicles)/launch/npc_vehicles.launch">
     <arg name='host' value='$(arg host)'/>
     <arg name='port' value='$(arg port)'/>
-    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name='npc_spawn_points' value='$(arg npc_spawn_points)'/>
+    <arg name='npc_spawn_vels' value='$(arg npc_spawn_vels)'/>
+    <arg name='npc_autopilot' value='$(arg npc_autopilot)'/>
+    <arg name='npc_vehicle_filter' value='$(arg npc_vehicle_filter)'/>
+
   </include>
 
 
