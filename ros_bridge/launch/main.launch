@@ -49,8 +49,8 @@
 
 
 <!-- NPC vehicles -->
-<arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
-<arg name="npc_spawn_vels" default="[ 2.0 ]"/>
+<arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-198,-70,2,-90]]"/>
+<arg name="npc_spawn_vels" default="[ 2.0 3.0]"/>
 <arg name="npc_autopilot" default="false"/>
 <!-- <arg name="npc_spawn_points" defau lt="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
 <arg name="npc_spawn_vels" default="[2.0, 3.0, 2.0]"/>

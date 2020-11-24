@@ -3,12 +3,12 @@ nx = 4; ny = 4; nu = 2;
 T_horizon = 1;
 Ts = 0.05;
 PredHor = T_horizon/Ts;
-CntrlHor = PredHor/2;
+CntrlHor = 3;
 enable_MPC = 0;
 
 obstcl_ellip_order = 6;
 ellip_coeff = [2 2 2 2 2 obstcl_ellip_order];
-inflation_factor = 1.3;
+inflation_factor = 1.5;
 
 x = [0 1 2 3];
 mv = [1 1];
@@ -24,9 +24,9 @@ mpc_planner.Optimization.CustomIneqConFcn = "constraint_obstcl_avoid";
 % mpc_planner.Jacobian.CustomIneqConFcn = "constraint_obstcl_avoid_jacobian";
 
 %Apply limits on input
-mpc_planner.ManipulatedVariables(1).Min = -5;
+mpc_planner.ManipulatedVariables(1).Min = -10;
 mpc_planner.ManipulatedVariables(2).Min = deg2rad(-70);
-mpc_planner.ManipulatedVariables(1).Max = 5;
+mpc_planner.ManipulatedVariables(1).Max = 7;
 mpc_planner.ManipulatedVariables(2).Max = deg2rad(70);
 
 

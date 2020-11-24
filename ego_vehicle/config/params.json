@@ -17,10 +17,10 @@
 
 	"delta_t":0.1, 
 	"t_reach_horizon":1.0,
-	"v_des": 20,         
+	"v_des": 30,         
 	"ax_max": 0.0,      
 	"delta_max": 0.52,
 
-	"d_safe_overtake": 10.0,
+	"d_safe_overtake": 5.0,
 	"d_safe_cruise": 5.0
 } 

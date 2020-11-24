@@ -436,20 +436,30 @@ class TargetStateSelection(object):
         The logic will be expanded to check for nearest 
         lead car in case of many car scenario
         """
-        obstcl_car_loc = None
-        if self.obstcl_cars:
-            obstcl_car_loc_w = self.obstcl_cars[0].get_location()
+        nearest_lead_car = None
+        for car in self.obstcl_cars:
+            obstcl_car_loc_w = car.get_location()
             obstcl_car_loc_ego = utils.transform_location(np.array([obstcl_car_loc_w.x, obstcl_car_loc_w.y, obstcl_car_loc_w.z]),
                                                          self.ego_car.get_transform(), loc_CS = 'L')
-            d = np.linalg.norm(obstcl_car_loc_ego)
-            if d < 20: 
-                self.nearest_car_loc_ego  = obstcl_car_loc_ego
-                self.nearest_car = self.obstcl_cars[0]
-            else:
-                return None
+            # d = np.linalg.norm(obstcl_car_loc_ego)
+            if obstcl_car_loc_ego[0] > -5 and obstcl_car_loc_ego[0] < 10: 
+               nearest_lead_car  = car
+        
+        if nearest_lead_car:
+            nearest_lead_car_loc_w = nearest_lead_car.get_location()
+            nearest_lead_car_loc_ego = utils.transform_location(np.array([nearest_lead_car_loc_w.x, nearest_lead_car_loc_w.y, nearest_lead_car_loc_w.z]),
+                                                         self.ego_car.get_transform(), loc_CS = 'L')
+            self.nearest_car = nearest_lead_car 
+            self.nearest_car_loc_ego  = nearest_lead_car_loc_ego   
         else:
-            return None
+            self.nearest_car = None
+            self.nearest_car_loc_ego = np.array([0,0,0])    
 
+        rospy.logwarn(f"Distance to nearest lead car: {self.nearest_car}, {self.nearest_car_loc_ego}")
+
+
+
+        
     def check_overtake_complete(self):
 
         d = np.linalg.norm(self.final_ref_target)
