@@ -2,8 +2,8 @@ clear;
 clc;
 clf;
 close all;
-load('simdata/2020-11-6 09:22:38_sim_out');
-start_time_idx = 5; 
+load('simdata/2020-11-25 12:32:01_sim_out_2vehicles');
+start_time_idx = 110; 
 
 %Reference state data
 Pdes_timeseries = timeseries(out.P_des.Data(start_time_idx:end,1:2),...

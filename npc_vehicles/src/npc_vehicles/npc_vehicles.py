@@ -58,11 +58,13 @@ class NPCVehicles(object):
         # @todo cannot import these directly.
         SpawnActor = carla.command.SpawnActor
         SetAutopilot = carla.command.SetAutopilot
+        SetTargetVelocity = carla.command.ApplyTargetVelocity
         FutureActor = carla.command.FutureActor
         # spawn_locs = [[-198,-85,5,-90], [-198,-95,5,-90], [-198,-105,5,-90]]
-        spawn_locs = ast.literal_eval(rospy.get_param('/npc_vehicles/spawn_locs', '[[-198,-85,5,-90], [-198,-95,5,-90], [-198,-105,5,-90]]'))
+        spawn_locs = ast.literal_eval(rospy.get_param('/npc_vehicles/spawn_locs', '[[-198,-85.5,-90], [-198,-95.5,-90], [-198,-105.5,-90]]'))
+        spawn_vels = ast.literal_eval(rospy.get_param('/npc_vehicles/spawn_vels', '[0.0,0.0,0.0]'))
         self.spawn_points = [self.get_spawnpoint(x) for x in spawn_locs]
-
+        print(spawn_vels)
         # --------------
         # Spawn vehicles
         # --------------
@@ -73,7 +75,7 @@ class NPCVehicles(object):
                 color = random.choice(blueprint.get_attribute('color').recommended_values)
                 blueprint.set_attribute('color', color)
             blueprint.set_attribute('role_name', 'NPC_'+str(n))
-            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, self.autopilot)))
+            batch.append(SpawnActor(blueprint, transform).then(SetAutopilot(FutureActor, self.autopilot)).then(SetTargetVelocity(FutureActor, carla.Vector3D(x=0.0,y=spawn_vels[n],z=0.0))))
 
         for response in self.client.apply_batch_sync(batch, self.settings.synchronous_mode):
             if response.error:

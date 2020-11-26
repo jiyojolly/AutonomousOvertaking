@@ -5,14 +5,37 @@
   <arg name='port' default='2000'/>
   <arg name='timeout' default='2'/>
 
-  <!-- Ego vehicle -->
+  <!-- ############# Scenarios #################################################################### -->
+  <!-- NPC vehicles -->
+  <!-- Two Vehicles -->
+  <!-- <arg name="spawn_point" default="-198,-45,2,0,0,90"/> -->
+  <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-198,-70,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[ -0.0, -0.0]"/>
+  <arg name="npc_autopilot" default="false"/> -->
+
+  <!-- Single Vehicle with velocity -->
+  <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[ -3.0]"/>
+  <arg name="npc_autopilot" default="false"/>
+  
+  <!-- Single vehicle dynamic -->
+  <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[ -0.0]"/>
+  <arg name="npc_autopilot" default="true"/> -->
+
+  <!-- With oncoming vehicle -->
+  <!-- <arg name="npc_spawn_points" defau lt="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[2.0, 3.0, 2.0]"/>
+  <arg name="npc_autopilot" default="false"/> -->
+
+  <!-- ############# Scenarios #################################################################### -->
+
+  <!-- Ego vehicle Specific-->
   <arg name='role_name' default='ego_vehicle'/>
   <arg name="vehicle_filter" default='vehicle.audi.a2'/>
-  <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
-  <!-- <arg name="spawn_point" default="10,0,2,0,0,0"/> -->
-  <!-- <arg name="spawn_point" default="-4.7,-91.2,2.0,0,0,90"/> -->
-
-   <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
+  
+  <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
   <arg name="town" default='Town07'/>
 
   <!-- Synchronous mode -->
@@ -47,15 +70,7 @@
     <arg name='role_name' value='$(arg role_name)'/>
   </include>
 
-
-<!-- NPC vehicles -->
-<arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-198,-70,2,-90]]"/>
-<arg name="npc_spawn_vels" default="[ 2.0 3.0]"/>
-<arg name="npc_autopilot" default="false"/>
-<!-- <arg name="npc_spawn_points" defau lt="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
-<arg name="npc_spawn_vels" default="[2.0, 3.0, 2.0]"/>
-<arg name="npc_autopilot" default="false"/> -->
-
+  <!-- NPC Specific Settings -->
  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
  
   <include file="$(find npc_vehicles)/launch/npc_vehicles.launch">

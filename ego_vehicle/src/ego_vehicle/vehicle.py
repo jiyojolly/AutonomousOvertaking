@@ -29,13 +29,18 @@ import numpy as np
 import json
 from carla_ego_vehicle.carla_ego_vehicle import CarlaEgoVehicle
 from carla_msgs.msg import CarlaWorldInfo
-from shapely.geometry import Polygon, LineString, Point, box
+from shapely.geometry import Polygon, LineString, Point, box, LinearRing
 import shapely.ops
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from std_msgs.msg import Bool
 
 from ego_vehicle.overtake_algs import CarPotential, LanePotential, ReachableSet, TargetStateSelection
+
+import utils
+#Message definitions
+from custom_msgs.msg import Float64Arr4
+from std_msgs.msg import Float32MultiArray
 
 
 # You probably won't need this if you're embedding things in a tkinter plot...
@@ -105,6 +110,54 @@ class EgoVehicle(CarlaEgoVehicle):
         # ylims = np.array([-50,50])
         # zlims = np.array([0,30])
 
+        #Initialize publisher
+        self.pub_obstacle = rospy.Publisher('Obstacle', Float32MultiArray, queue_size = 2)
+        self.pub_ego = rospy.Publisher('Ego_car', Float32MultiArray, queue_size = 2)
+        #Initialize publisher
+        self.pub_xref = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
+        self.pub_pdes = rospy.Publisher('P_des', Float64Arr4, queue_size = 2)
+
+
+    def publish_ego_data(self):
+        #Publish ego car data to MATLAB
+        data_ego = np.asarray(self.car_potential.ego_plgn_world.coords)
+        data_ego = np.expand_dims(data_ego,axis=0)
+        # print(data_ego)
+        # print(data_ego.shape)
+        data_to_send = utils.numpy_to_multiarray(Float32MultiArray, data_ego)
+        self.pub_ego.publish(data_to_send)
+
+        #Publish obstacle car data to MATLAB
+        # data_np = np.asarray(self.car_potential.obstcl_vehicles_plgns_world[0].coords)[2:,:]
+        # data_np = np.expand_dims(data_np,axis=0)
+        # data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
+        # data_to_send = data_MArr # assign the array with the value you want to send
+        # self.pub_obstacle.publish(data_to_send)
+    def publish_obstcl_data(self):
+        #Publish obstacle car data to MATLAB newww
+        if self.target_selection.nearest_car:
+            obstacl_car = self.target_selection.nearest_car
+            obstacl_loc = np.array([obstacl_car.get_transform().location.x, obstacl_car.get_transform().location.y, obstacl_car.get_transform().location.z])
+            get_boundingbox_transformed = lambda vehicle, transform : [utils.transform_location(np.array([vertex.x, vertex.y, vertex.z]),transform)
+                                                             for i,vertex in enumerate(vehicle.bounding_box.get_world_vertices(vehicle.get_transform())) if (i % 2) == 0]
+            obstacl_car_box_world = get_boundingbox_transformed(obstacl_car, carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0)))
+            obstacl_car_plgn_world = LinearRing([(obstacl_car_box_world[0][0:2]), (obstacl_car_box_world[1][0:2]), (obstacl_car_box_world[3][0:2]), (obstacl_car_box_world[2][0:2]), (obstacl_car_box_world[2][0:2])])
+            data_np = np.asarray(obstacl_car_plgn_world.coords)
+            data_np = np.expand_dims(data_np,axis=0)
+            data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
+            data_to_send = data_MArr # assign the array with the value you want to send
+            self.pub_obstacle.publish(data_to_send)
+
+
+
+    def publish_MPC_ref(self):
+        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
+        data_to_send.data = self.target_selection.X_ref_target_world # assign the array with the value you want to send
+        self.pub_xref.publish(data_to_send)
+        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
+        data_to_send.data = np.append(self.target_selection.final_ref_target_world,0.0) # assign the array with the value you want to send
+        self.pub_pdes.publish(data_to_send)
+
     def reset_scenario_callback(self,data):
         rospy.logwarn("Resetting scenario.... {}".format(data))
         self.restart()
@@ -117,14 +170,11 @@ class EgoVehicle(CarlaEgoVehicle):
     def update_state(self):
        
         #Update state of obstacle car risk calculation
-    
         self.car_potential.update_state(self.player, self.sub_cars, self.json_params)
 
         #Update state of Road & Lane risk calculation 
         curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
         self.lane_potential.update_state(curr_waypoint, self.player.get_transform())
-
-
 
     def select_target(self):
         mask_safe = self.z < 8
@@ -141,6 +191,10 @@ class EgoVehicle(CarlaEgoVehicle):
         self.target_selection.update_state(self.player, self.sub_cars, self.L_safe_reach)
         self.target_selection.update_ref(self.world.get_map())
 
+        #Publish obstacle data and ref point
+        self.publish_obstcl_data()
+        self.publish_MPC_ref()
+
 
     def update_pot(self):
          
@@ -151,6 +205,8 @@ class EgoVehicle(CarlaEgoVehicle):
         if self.player is not None:
             #Update State
             self.update_state()
+            #Publish state data to MATLAB
+            self.publish_ego_data()
             #Initialize meshgrid with zeroes
             z = np.zeros(self.pos_meshgrid[0].shape)
 
@@ -206,8 +262,8 @@ class EgoVehicle(CarlaEgoVehicle):
 
         if self.L_safe_reach:self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='#4dff4d', label='Safe, Reach Set')
 
-        self.ax_2d.scatter(self.target_selection.ref_target_safe_reach[0] , self.target_selection.ref_target_safe_reach[1], marker='x', color='#cdb332', label='Intd. MPC Target')
-        self.ax_2d.scatter(self.target_selection.final_ref_target[0], self.target_selection.final_ref_target[1], marker='x', color='#008000', label='Final Target')
+        self.ax_2d.scatter(self.target_selection.x_ref_target_ego[0] , self.target_selection.x_ref_target_ego[1], marker='x', color='#cdb332', label='Intd. MPC Target')
+        self.ax_2d.scatter(self.target_selection.final_ref_target_ego[0], self.target_selection.final_ref_target_ego[1], marker='x', color='#008000', label='Final Target')
 
 
         # Plot potential field as a 3d surface plot

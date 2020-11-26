@@ -28,8 +28,6 @@ from custom_msgs.msg import Float64Arr4
 from std_msgs.msg import Float32MultiArray
 
 
-
-
 # @profile
 def yukawa_pot(json_params, Kd):
     """
@@ -95,28 +93,6 @@ class CarPotential(object):
         self.obstcl_vehicles_plgns = []
         self.obstcl_vehicles_plgns_world = []
 
-         #Initialize publisher
-        self.pub_obstacle = rospy.Publisher('Obstacle', Float32MultiArray, queue_size = 2)
-        self.pub_ego = rospy.Publisher('Ego_car', Float32MultiArray, queue_size = 2)
-
-
-    def publish_obstcl(self):
-        data_np = np.asarray(self.obstcl_vehicles_plgns_world[0].coords)[2:,:]
-        data_np = np.expand_dims(data_np,axis=0)
-        data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
-        data_to_send = data_MArr # assign the array with the value you want to send
-        self.pub_obstacle.publish(data_to_send)
-
-    def publish_ego(self):
-        data_ego = np.asarray(self.ego_plgn_world.coords)
-        data_ego = np.expand_dims(data_ego,axis=0)
-        # print(data_ego)
-        # print(data_ego.shape)
-        data_to_send = utils.numpy_to_multiarray(Float32MultiArray, data_ego)
-        self.pub_ego.publish(data_to_send)
-
-
-
     # @profile
     def update_state(self, ego_car, obstcl_vehicles, json_params):
         """
@@ -170,7 +146,6 @@ class CarPotential(object):
         ego_box_world = get_boundingbox_transformed(ego_car, carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0)))
         self.ego_plgn = LinearRing([(ego_box[0][0:2]), (ego_box[1][0:2]), (ego_box[3][0:2]), (ego_box[2][0:2])])
         self.ego_plgn_world = LinearRing([(ego_box_world[0][0:2]), (ego_box_world[1][0:2]), (ego_box_world[3][0:2]), (ego_box_world[2][0:2])])
-        self.publish_ego()
 
         if obstcl_vehicles:
             #Obstacle Vehicles in Ego car frame
@@ -182,9 +157,9 @@ class CarPotential(object):
             obstcl_vehicles_boxes_carla_ego = []
             obstcl_vehicles_boxes_carla_world = []
             for i,vehicle in enumerate(obstcl_vehicles_boxes_carla):
-                triang_vertex_b = np.array([vehicle[0][0]-(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+                triang_vertex_b = np.array([vehicle[0][0]-(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1, json_params["d_zero"]))), 
                                     vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
-                triang_vertex_i = np.array([vehicle[2][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale_front(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1,20))), 
+                triang_vertex_i = np.array([vehicle[2][0]+(json_params["delta_vertex"]*(np.clip(float(1.0)/vel_scale_front(self.ego_car_vel, self.obstcl_vehicles_vels[i]),1, json_params["d_zero"]))), 
                                     vehicle[0][1]+((vehicle[1][1]-vehicle[0][1])/2.00), 0.0])
 
                 vehicle.insert(1,triang_vertex_b)
@@ -206,7 +181,6 @@ class CarPotential(object):
             # print(obstcl_vehicles_boxes_carla_T)
             self.obstcl_vehicles_plgns = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_ego]
             self.obstcl_vehicles_plgns_world = [LinearRing([(box[0][0:2]), (box[1][0:2]), (box[2][0:2]), (box[5][0:2]), (box[4][0:2]), (box[3][0:2])]) for box in obstcl_vehicles_boxes_carla_world]
-            self.publish_obstcl()
     
 
     # @profile
@@ -386,25 +360,21 @@ class TargetStateSelection(object):
     def __init__(self, json_params):
         super(TargetStateSelection, self).__init__()
 
-        #Initialize publisher
-        self.pub_xref = rospy.Publisher('X_Ref', Float64Arr4, queue_size = 2)
-        self.pub_pdes = rospy.Publisher('P_des', Float64Arr4, queue_size = 2)
-
         self.d_safe_overtake = json_params["d_safe_overtake"]
         self.d_safe_cruise = json_params["d_safe_cruise"]
-        
+        self.disable_overtake = True
         #Instance variables
         self.ego_car = None
         self.obstcl_cars = []
         self.set_safe_reach_np = None
         self.nearest_car = None
-        self.nearest_car_loc_ego = None
+        self.nearest_car_loc_ego = np.array([0,0])
         
         #Final Targets
-        self.final_ref_target = np.zeros(2)
-        self.ref_target_safe_reach = np.zeros(2)
-
-
+        self.final_ref_target_ego = np.zeros(2)
+        self.final_ref_target_world = np.zeros(3)
+        self.x_ref_target_ego = np.zeros(2)
+        self.X_ref_target_world = np.zeros(4)
 
         #Behaviour Selection
         class BehaviourSM(StateMachine):
@@ -423,13 +393,6 @@ class TargetStateSelection(object):
         
         self.get_nearest_car()
 
-    def publish(self, X_ref, final_ref_target_world):
-        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
-        data_to_send.data = X_ref # assign the array with the value you want to send
-        self.pub_xref.publish(data_to_send)
-        data_to_send = Float64Arr4()  # the data to be sent, initialise the array
-        data_to_send.data = np.append(final_ref_target_world,0.0) # assign the array with the value you want to send
-        self.pub_pdes.publish(data_to_send)
 
     def get_nearest_car(self):
         """ 
@@ -443,9 +406,14 @@ class TargetStateSelection(object):
                                                          self.ego_car.get_transform(), loc_CS = 'L')
             # d = np.linalg.norm(obstcl_car_loc_ego)
             if obstcl_car_loc_ego[0] > -5 and obstcl_car_loc_ego[0] < 10: 
-               nearest_lead_car  = car
-        
-        if nearest_lead_car:
+                if self.nearest_car is None:
+                    nearest_lead_car  = car        
+                elif (self.nearest_car.id is not car.id) and  obstcl_car_loc_ego[0] > self.nearest_car_loc_ego[0]:
+                    nearest_lead_car  = car
+                else:
+                    nearest_lead_car = self.nearest_car
+                
+        if nearest_lead_car is not None:
             nearest_lead_car_loc_w = nearest_lead_car.get_location()
             nearest_lead_car_loc_ego = utils.transform_location(np.array([nearest_lead_car_loc_w.x, nearest_lead_car_loc_w.y, nearest_lead_car_loc_w.z]),
                                                          self.ego_car.get_transform(), loc_CS = 'L')
@@ -462,8 +430,8 @@ class TargetStateSelection(object):
         
     def check_overtake_complete(self):
 
-        d = np.linalg.norm(self.final_ref_target)
-        if d<1.0:
+        d = np.linalg.norm(self.final_ref_target_ego)
+        if d<2.0:
             return True
         else:
             return False
@@ -471,7 +439,7 @@ class TargetStateSelection(object):
 
     def decide_behavior(self):
 
-        if self.nearest_car: 
+        if self.nearest_car and not self.disable_overtake: 
             if self.nearest_car_loc_ego[0] > 0: 
                     if not(self.behaviour.is_overtaking):
                         self.behaviour.overtake()
@@ -508,8 +476,8 @@ class TargetStateSelection(object):
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
-            final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
-            rospy.logwarn(f"Final Target Ref world frame: {final_ref_target_world}")
+            self.final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
+            rospy.logwarn(f"Final Target Ref world frame: {self.final_ref_target_world}")
             # print(final_ref_target_world)
 
         #Overtake mode
@@ -519,8 +487,8 @@ class TargetStateSelection(object):
             waypoint = world_map.get_waypoint(carla.Location(loc_world[0],
                                                              -loc_world[1],
                                                              loc_world[2]), project_to_road=True)
-            final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
-            rospy.logwarn(f"Final Target Ref world frame: {final_ref_target_world}")
+            self.final_ref_target_world = np.array([waypoint.transform.location.x, -waypoint.transform.location.y, waypoint.transform.location.z])
+            rospy.logwarn(f"Final Target Ref world frame: {self.final_ref_target_world}")
             # print(final_ref_target_world)
 
         else:
@@ -530,28 +498,33 @@ class TargetStateSelection(object):
 
         #Transform ego final frame
         frame_of_ref = self.ego_car.get_transform()        
-        final_ref_target_ego = utils.transform_location(final_ref_target_world, frame_of_ref, loc_CS = 'R')
-        self.final_ref_target = final_ref_target_ego[:2]
+        final_ref_target_ego_xyz = utils.transform_location(self.final_ref_target_world, frame_of_ref, loc_CS = 'R')
+        self.final_ref_target_ego = final_ref_target_ego_xyz[:2]
         
         #Find nearest point from reach, safe set that minimizes the distance to final target state
         # if False:
         if self.set_safe_reach_np.size != 0:
-            ref_loc_index =  np.argmin(np.linalg.norm(self.final_ref_target[:2] - self.set_safe_reach_np, axis = 1))
+            ref_loc_index =  np.argmin(np.linalg.norm(self.final_ref_target_ego[:2] - self.set_safe_reach_np, axis = 1))
             # print(self.set_safe_reach_np.shape)
-            self.ref_target_safe_reach =  self.set_safe_reach_np[ref_loc_index,:]
+            ref_target_safe_reach =  self.set_safe_reach_np[ref_loc_index,:]
             # print(self.ref_target_safe_reach) 
-            X_ref = np.append(self.ref_target_safe_reach, [0.0, 4.0])
-            rospy.logwarn(f"Target Ref for MPC in Ego frame: {X_ref}")
-        else:
-            # self.ref_target_safe_reach = r
-            X_ref = np.array([0.0, 0.0, 0.0, 4.0])
+            rospy.logwarn(f"Intd. MPC Ref in Ego frame: {ref_target_safe_reach}")
 
-        # Transform to world frame before publishing..
-        x_ref_target_world = utils.transform_location( np.array((X_ref[0],X_ref[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
-        x_ref_target_world = x_ref_target_world[:2]
-        X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
-        rospy.logwarn(f"Target Ref for MPC in world frame: {X_ref_target_world}")
-        self.publish(X_ref_target_world, final_ref_target_world)
+            # Transform to world frame before publishing..
+            self.x_ref_target_ego = ref_target_safe_reach
+            x_ref_target_world = utils.transform_location( np.array((ref_target_safe_reach[0],ref_target_safe_reach[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
+            x_ref_target_world = x_ref_target_world[:2]
+            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
+        else:
+            ref_target_safe_reach = np.array([0.0, 0.0])
+            self.x_ref_target_ego = ref_target_safe_reach
+            # Transform to world frame before publishing..
+            x_ref_target_world = utils.transform_location( np.array((ref_target_safe_reach[0],ref_target_safe_reach[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
+            x_ref_target_world = x_ref_target_world[:2]
+            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
+
+        rospy.logwarn(f"Target Ref for MPC in world frame: {self.X_ref_target_world}")
+       
 
 
 

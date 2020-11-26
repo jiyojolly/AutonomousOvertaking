@@ -7,7 +7,7 @@
 	"Y_limit":[-10,10],
 	"grid_res": 0.5,
 	"delta_vertex":0.5,
-	"d_zero":20.0,
+	"d_zero":10.0,
 	"Tf":3.0,
 	"beta":0.6,
 
@@ -21,6 +21,6 @@
 	"ax_max": 0.0,      
 	"delta_max": 0.52,
 
-	"d_safe_overtake": 5.0,
+	"d_safe_overtake": 7.5,
 	"d_safe_cruise": 5.0
 } 

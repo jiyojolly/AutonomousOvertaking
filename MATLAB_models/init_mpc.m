@@ -26,7 +26,7 @@ mpc_planner.Optimization.CustomIneqConFcn = "constraint_obstcl_avoid";
 %Apply limits on input
 mpc_planner.ManipulatedVariables(1).Min = -10;
 mpc_planner.ManipulatedVariables(2).Min = deg2rad(-70);
-mpc_planner.ManipulatedVariables(1).Max = 7;
+mpc_planner.ManipulatedVariables(1).Max = 5;
 mpc_planner.ManipulatedVariables(2).Max = deg2rad(70);
 
 
