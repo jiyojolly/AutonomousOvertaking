@@ -362,7 +362,8 @@ class TargetStateSelection(object):
 
         self.d_safe_overtake = json_params["d_safe_overtake"]
         self.d_safe_cruise = json_params["d_safe_cruise"]
-        self.disable_overtake = True
+        self.v_des = json_params["v_des"]/3.6      
+        self.disable_overtake = False
         #Instance variables
         self.ego_car = None
         self.obstcl_cars = []
@@ -514,14 +515,14 @@ class TargetStateSelection(object):
             self.x_ref_target_ego = ref_target_safe_reach
             x_ref_target_world = utils.transform_location( np.array((ref_target_safe_reach[0],ref_target_safe_reach[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
             x_ref_target_world = x_ref_target_world[:2]
-            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
+            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, self.v_des])
         else:
             ref_target_safe_reach = np.array([0.0, 0.0])
             self.x_ref_target_ego = ref_target_safe_reach
             # Transform to world frame before publishing..
             x_ref_target_world = utils.transform_location( np.array((ref_target_safe_reach[0],ref_target_safe_reach[1],0.0)), frame_of_ref, inv = True, loc_CS = 'R')
             x_ref_target_world = x_ref_target_world[:2]
-            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, 4.0])
+            self.X_ref_target_world = np.append(x_ref_target_world, [1.571, 0.0])
 
         rospy.logwarn(f"Target Ref for MPC in world frame: {self.X_ref_target_world}")
        

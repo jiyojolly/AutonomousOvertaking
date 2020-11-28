@@ -21,6 +21,6 @@
 	"ax_max": 0.0,      
 	"delta_max": 0.52,
 
-	"d_safe_overtake": 7.5,
+	"d_safe_overtake": 4.0,
 	"d_safe_cruise": 5.0
 } 

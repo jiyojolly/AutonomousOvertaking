@@ -3,7 +3,7 @@ nx = 4; ny = 4; nu = 2;
 T_horizon = 1;
 Ts = 0.05;
 PredHor = T_horizon/Ts;
-CntrlHor = 3;
+CntrlHor = 2;
 enable_MPC = 0;
 
 obstcl_ellip_order = 6;
@@ -31,7 +31,7 @@ mpc_planner.ManipulatedVariables(2).Max = deg2rad(70);
 
 
 %Weights
-mpc_planner.Weights.OutputVariables = [10 10 2 5];
+mpc_planner.Weights.OutputVariables = [10 10 5 5];
 
 createParameterBus(mpc_planner,['MPC_Planner_Controller/MPC/Nonlinear MPC Controller'],'params',{ellip_coeff});
 x0 = [2 0 -pi/2 0.3];

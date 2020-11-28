@@ -3,7 +3,8 @@ clc;
 clf;
 close all;
 load('simdata/2020-11-25 12:32:01_sim_out_2vehicles');
-start_time_idx = 110; 
+start_time_idx = 20;
+v_des = 30/3.6;
 
 %Reference state data
 Pdes_timeseries = timeseries(out.P_des.Data(start_time_idx:end,1:2),...
@@ -51,34 +52,46 @@ mv_steerang_actual_timeseries.Name = 'Steering Angle 𝛿 (rad)';
 
 %%%Plotting everything%%%%%%%
 linewidth = 2.0;
-fontsize = 14;
+fontsize = 40;
 figure;
-plot(x1_actual_timeseries, 'LineWidth' , linewidth,'HandleVisibility','off');
+plot(x1_actual_timeseries, 'LineWidth' , linewidth, 'HandleVisibility','off');
 hold on;
-plot([0 x1_actual_timeseries.Time(end)] ,[196.5 196.5], 'DisplayName','Lane/Road Edges','LineStyle', ':')
-plot([0 x1_actual_timeseries.Time(end)] ,[199.5 199.5],'HandleVisibility','off','LineStyle', '--')
-plot([0 x1_actual_timeseries.Time(end)] ,[202.5 202.5],'HandleVisibility','off','LineStyle', ':')
+plot([0 x1_actual_timeseries.Time(end)] ,[196.5 196.5],...
+                'DisplayName','Lane/Road Edges','LineStyle', ':', 'LineWidth' , linewidth)
+plot([0 x1_actual_timeseries.Time(end)] ,[199.5 199.5],...
+                'HandleVisibility','off','LineStyle', '--', 'LineWidth' , linewidth)
+plot([0 x1_actual_timeseries.Time(end)] ,[202.5 202.5],...
+                'HandleVisibility','off','LineStyle', ':', 'LineWidth' , linewidth)
 ylim([195,204])
 legend;
 hold off;
 ax1 = gca;
 ax1.YAxis.FontWeight = 'bold';
 ax1.YAxis.FontSize = fontsize;
+ax1.FontSize = fontsize;
 xlabel('time (s)', 'FontWeight', 'bold');
-xlim([x1_actual_timeseries.Time(1),x1_actual_timeseries.Time(end)])
+title('');
+xlim([x1_actual_timeseries.Time(start_time_idx),x1_actual_timeseries.Time(end)])
 
 figure;
 yyaxis left;
-plot(x4_actual_timeseries, 'LineWidth' , linewidth);
+hold on;
+plot([0 x4_actual_timeseries.Time(end)] ,[v_des v_des],...
+                'DisplayName','Desired Velocity','LineStyle', ':', 'LineWidth' , linewidth)
+plot(x4_actual_timeseries, 'LineWidth' , linewidth,'LineStyle', '-', 'HandleVisibility','off');
+hold off;
 yyaxis right;
-plot(x3_actual_timeseries, 'LineWidth' , linewidth);
+plot(x3_actual_timeseries, 'LineWidth' , linewidth, 'HandleVisibility','off');
 ax1 = gca;
+ax1.FontSize = fontsize;
 ax1.YAxis(1).FontWeight = 'bold';
 ax1.YAxis(1).FontSize = fontsize;
 ax1.YAxis(2).FontWeight = 'bold';
 ax1.YAxis(2).FontSize = fontsize;
+legend;
+title('');
 xlabel('time (s)', 'FontWeight', 'bold');
-xlim([x1_actual_timeseries.Time(1),x1_actual_timeseries.Time(end)])
+xlim([x4_actual_timeseries.Time(start_time_idx),x4_actual_timeseries.Time(end)])
 
 % figure;
 % yyaxis left;
@@ -99,19 +112,31 @@ yyaxis right;
 plot(mv_acc_actual_timeseries, 'LineWidth' , linewidth);
 ylim([-10,10])
 ax1 = gca;
+ax1.FontSize = fontsize;
 ax1.YAxis(1).FontWeight = 'bold';
 ax1.YAxis(1).FontSize = fontsize;
 ax1.YAxis(2).FontWeight = 'bold';
 ax1.YAxis(2).FontSize = fontsize;
 xlabel('time (s)');
-xlim([x1_actual_timeseries.Time(1),x1_actual_timeseries.Time(end)])
+xlim([x1_actual_timeseries.Time(start_time_idx),x1_actual_timeseries.Time(end)])
 
 %Plot main trajectory & other stuff
 %Plot once for Label
 figure;
+fontsize = 20;
+y_start = 30;
+y_end = 120;
+ax1 = gca;
+ax1.FontSize = fontsize;
 hold all;
 i=1;
 c = rescale(1:size(x_pred_timeseries.Time));
+plot([-196.5 -196.5], [y_start y_end],...
+                'DisplayName','Lane/Road Edges','LineStyle', ':', 'LineWidth' , linewidth)
+plot([-199.5 -199.5], [y_start y_end] ,...
+                'HandleVisibility','off','LineStyle', '--', 'LineWidth' , linewidth)
+plot([-202.5 -202.5], [y_start y_end] ,...
+                'HandleVisibility','off','LineStyle', ':', 'LineWidth' , linewidth)
 %Plot desired
 scatter(Pdes_timeseries.Data(i,1), Pdes_timeseries.Data(i,2), 50, 'p',...
         'MarkerEdgeColor','#008000', 'MarkerFaceColor', '#008000','DisplayName','P_d_e_s');

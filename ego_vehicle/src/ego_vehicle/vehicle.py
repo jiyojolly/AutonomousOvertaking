@@ -278,7 +278,7 @@ class EgoVehicle(CarlaEgoVehicle):
         self.ax_2d.set_xlim(-10,20)
         self.ax_2d.set_ylim(-20,20)
         #Set legend
-        self.ax_2d.legend()  
+        self.ax_2d.legend(prop={'size': 12})  
         
         if self.plot_3d == True:
             self.ax_3d.set_xlim(-20,20)

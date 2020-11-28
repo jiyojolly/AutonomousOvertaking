@@ -6,28 +6,68 @@
   <arg name='timeout' default='2'/>
 
   <!-- ############# Scenarios #################################################################### -->
-  <!-- NPC vehicles -->
-  <!-- Two Vehicles -->
+  <!-- Scenario 1 - No Vehicles - Lane keeping-->
+<!--   <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[]"/>
+  <arg name="npc_spawn_vels" default="[]"/>
+  <arg name="npc_autopilot" default="false"/>
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+
+  <!-- Scenario 2 - Static Vehicle - Lane Change-->
+<!--   <arg name="spawn_point" default="-198,-45,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[0.0]"/>
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+  
+  <!-- Scenario 3 - One Vehicle - Lane Change-->
+  <!-- <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[-3.0]"/>
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+
+  <!-- Scenario 4 - Static Vehicle - Overtake-->
+<!--   <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[0.0]"/>
+  <arg name="npc_autopilot" default="false"/>
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+
+  <!-- Scenario 5 - Static small Vehicle - Overtake-->
+<!--   <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[0.0]"/>
+  <arg name="npc_autopilot" default="false"/>
+  <arg name="npc_vehicle_filter" default='vehicle.bh.crossbike'/> -->
+
+  <!-- Scenario 5 - 1 Vehicle with velocity - Overtake -->
+  <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[-3.0]"/>
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
+
+  <!-- Scenario 6 - 2 Static Vehicle - Overtake-->
   <!-- <arg name="spawn_point" default="-198,-45,2,0,0,90"/> -->
   <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-198,-70,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[ -0.0, -0.0]"/>
-  <arg name="npc_autopilot" default="false"/> -->
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
-  <!-- Single Vehicle with velocity -->
-  <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
-  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
-  <arg name="npc_spawn_vels" default="[ -3.0]"/>
-  <arg name="npc_autopilot" default="false"/>
-  
-  <!-- Single vehicle dynamic -->
+  <!-- Scenario 7 - 1 Vehicle dynamic - Overtake -->
   <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[ -0.0]"/>
-  <arg name="npc_autopilot" default="true"/> -->
-
-  <!-- With oncoming vehicle -->
-  <!-- <arg name="npc_spawn_points" defau lt="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
-  <arg name="npc_spawn_vels" default="[2.0, 3.0, 2.0]"/>
-  <arg name="npc_autopilot" default="false"/> -->
+  <arg name="npc_autopilot" default="true"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+  <!-- NPC vehicles -->
+ 
+  <!-- Scenario 8 - With oncoming vehicle -->
+  <!--   <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[0.0, 0.0, 0.0]"/>
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
   <!-- ############# Scenarios #################################################################### -->
 
@@ -70,9 +110,7 @@
     <arg name='role_name' value='$(arg role_name)'/>
   </include>
 
-  <!-- NPC Specific Settings -->
- <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
- 
+  <!-- NPC Specific Settings --> 
   <include file="$(find npc_vehicles)/launch/npc_vehicles.launch">
     <arg name='host' value='$(arg host)'/>
     <arg name='port' value='$(arg port)'/>
