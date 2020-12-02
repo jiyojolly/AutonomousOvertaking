@@ -79,7 +79,7 @@ class NPCVehicles(object):
 
         for response in self.client.apply_batch_sync(batch, self.settings.synchronous_mode):
             if response.error:
-                logging.error(response.error)
+                rospy.logerr(response.error)
             else:
                 self.npc_agents.append(response.actor_id)
         rospy.loginfo("Spawned subject vehicles")

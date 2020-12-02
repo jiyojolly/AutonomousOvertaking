@@ -41,28 +41,35 @@
   <arg name="npc_autopilot" default="false"/>
   <arg name="npc_vehicle_filter" default='vehicle.bh.crossbike'/> -->
 
-  <!-- Scenario 5 - 1 Vehicle with velocity - Overtake -->
-  <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
-  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
-  <arg name="npc_spawn_vels" default="[-3.0]"/>
-  <arg name="npc_autopilot" default="false"/> 
+  <!-- Scenario 5 - Static small Vehicle - Overtake-->
+  <arg name="spawn_point" default="-198,-45,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-197,-90,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[0.0,0.0]"/>
+  <arg name="npc_autopilot" default="false"/>
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
 
-  <!-- Scenario 6 - 2 Static Vehicle - Overtake-->
+  <!-- Scenario 6 - 1 Vehicle with velocity - Overtake -->
+<!--   <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+  <arg name="npc_spawn_vels" default="[-5.0]"/>
+  <arg name="npc_autopilot" default="false"/> 
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+
+  <!-- Scenario 7 - 2 Static Vehicle - Overtake-->
   <!-- <arg name="spawn_point" default="-198,-45,2,0,0,90"/> -->
   <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90], [-198,-70,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[ -0.0, -0.0]"/>
   <arg name="npc_autopilot" default="false"/> 
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
-  <!-- Scenario 7 - 1 Vehicle dynamic - Overtake -->
+  <!-- Scenario 8 - 1 Vehicle dynamic - Overtake -->
   <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[ -0.0]"/>
   <arg name="npc_autopilot" default="true"/> 
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
   <!-- NPC vehicles -->
  
-  <!-- Scenario 8 - With oncoming vehicle -->
+  <!-- Scenario 9 - With oncoming vehicle -->
   <!--   <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
   <arg name="npc_spawn_points" default="[[-201.5,-60,2,90], [-198,-65,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[0.0, 0.0, 0.0]"/>

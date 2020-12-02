@@ -3,8 +3,8 @@ clc;
 clf;
 close all;
 init_mpc;
-load('simdata/2020-12-1 22:48:33_sim_out_2seperateLV');
-start_time_idx = 10;
+load('simdata/2020-12-1 14:46:35_sim_out');
+start_time_idx = 20;
 
 %Reference state data
 Pdes_timeseries = timeseries(out.P_des.Data(start_time_idx:end,1:2),...
@@ -41,14 +41,14 @@ x4_actual_timeseries.Name = 'Velocity v (m/s)';
 %Ego car acceleration actual
 a_actual_timeseries = timeseries(out.acc_curr.ax.Data(start_time_idx:end),...
                                   out.acc_curr.ax.Time(start_time_idx:end));
-a_actual_timeseries.Name = 'Ego Car Acc - a_x (m/s^2)';
+a_actual_timeseries.Name = 'Acceleration a_x (m/s)';
 %Ego car control inputs actual  
 mv_acc_actual_timeseries = timeseries(out.mv.Data(start_time_idx:end,1),...
                                      out.x_curr.Time(start_time_idx:end));
-mv_acc_actual_timeseries.Name = 'Acceleration Cmd a_x (m/s^2)';
+mv_acc_actual_timeseries.Name = 'Acceleration a_x (m/s^2)';
 mv_steerang_actual_timeseries = timeseries(out.mv.Data(start_time_idx:end,2),...
                                            out.x_curr.Time(start_time_idx:end));
-mv_steerang_actual_timeseries.Name = 'Steering Angle Cmd 𝛿 (rad)';
+mv_steerang_actual_timeseries.Name = 'Steering Angle 𝛿 (rad)';
 
 %%%Plotting everything%%%%%%%
 linewidth = 2.0;
@@ -117,11 +117,10 @@ plot([0 mv_acc_actual_timeseries.Time(end)] ,[acc.max acc.max],...
                 'DisplayName','Acc Max','LineStyle', ':', 'LineWidth' , linewidth)
 plot(mv_acc_actual_timeseries, 'LineWidth' , linewidth,'LineStyle', '-', 'HandleVisibility','off');
 hold off;
-ylim([-15,10])
+ylim([-10,10])
 yyaxis right;
 plot(a_actual_timeseries, 'LineWidth' , linewidth, 'HandleVisibility','off');
 ax1 = gca;
-fontsize = 35;
 ax1.FontSize = fontsize;
 ax1.YAxis(1).FontWeight = 'bold';
 ax1.YAxis(1).FontSize = fontsize;
@@ -130,7 +129,7 @@ ax1.YAxis(2).FontSize = fontsize;
 legend;
 title('');
 xlabel('time (s)', 'FontWeight', 'bold');
-ylim([-15,10])
+ylim([-10,10])
 xlim([mv_acc_actual_timeseries.Time(start_time_idx),mv_acc_actual_timeseries.Time(end)])
 
 %Plot main trajectory & other stuff
