@@ -82,6 +82,7 @@ class EgoVehicle(CarlaEgoVehicle):
         y = np.arange(self.json_params["Y_limit"][0],self.json_params["Y_limit"][1], self.json_params["grid_res"])
         self.pos_meshgrid = np.meshgrid(x, y, sparse=False)
 
+        self.curr_waypoint = None
         # Create car potential class
         self.car_potential = CarPotential()
         self.lane_potential = LanePotential()
@@ -137,12 +138,14 @@ class EgoVehicle(CarlaEgoVehicle):
         #Publish obstacle car data to MATLAB newww
         if self.target_selection.nearest_car:
             obstacl_car = self.target_selection.nearest_car
-            obstacl_loc = np.array([obstacl_car.get_transform().location.x, obstacl_car.get_transform().location.y, obstacl_car.get_transform().location.z])
-            get_boundingbox_transformed = lambda vehicle, transform : [utils.transform_location(np.array([vertex.x, vertex.y, vertex.z]),transform)
-                                                             for i,vertex in enumerate(vehicle.bounding_box.get_world_vertices(vehicle.get_transform())) if (i % 2) == 0]
-            obstacl_car_box_world = get_boundingbox_transformed(obstacl_car, carla.Transform(location=carla.Location(0.0,0.0,0.0), rotation=carla.Rotation(0.0,0.0,0.0)))
-            obstacl_car_plgn_world = LinearRing([(obstacl_car_box_world[0][0:2]), (obstacl_car_box_world[1][0:2]), (obstacl_car_box_world[3][0:2]), (obstacl_car_box_world[2][0:2]), (obstacl_car_box_world[2][0:2])])
-            data_np = np.asarray(obstacl_car_plgn_world.coords)
+            obstacl_loc = np.array([obstacl_car.get_transform().location.x, -obstacl_car.get_transform().location.y, obstacl_car.get_transform().location.z])
+            obstacl_heading = obstacl_car.get_transform().rotation.yaw
+            get_boundingbox_local = lambda vehicle : [np.array([vertex.x, vertex.y, vertex.z])
+                                                         for i,vertex in enumerate(vehicle.bounding_box.get_local_vertices()) if (i % 2) == 0]
+            obstacl_car_box_local= get_boundingbox_local(obstacl_car)
+            obstacl_car_plgn_local = Polygon([(obstacl_car_box_local[0][0:2]), (obstacl_car_box_local[1][0:2]), (obstacl_car_box_local[3][0:2]), (obstacl_car_box_local[2][0:2])])
+            data_np = np.asarray([obstacl_loc[0], obstacl_loc[1], abs(obstacl_car_plgn_local.bounds[0]-obstacl_car_plgn_local.bounds[2]), abs(obstacl_car_plgn_local.bounds[1]-obstacl_car_plgn_local.bounds[3]), -obstacl_heading])
+            print(data_np)
             data_np = np.expand_dims(data_np,axis=0)
             data_MArr = utils.numpy_to_multiarray(Float32MultiArray, data_np)
             data_to_send = data_MArr # assign the array with the value you want to send
@@ -173,8 +176,8 @@ class EgoVehicle(CarlaEgoVehicle):
         self.car_potential.update_state(self.player, self.sub_cars, self.json_params)
 
         #Update state of Road & Lane risk calculation 
-        curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
-        self.lane_potential.update_state(curr_waypoint, self.player.get_transform())
+        self.curr_waypoint = self.world.get_map().get_waypoint(self.player.get_location(), project_to_road=True)
+        self.lane_potential.update_state(self.curr_waypoint, self.player.get_transform())
 
     def select_target(self):
         mask_safe = self.z < 8
@@ -233,9 +236,13 @@ class EgoVehicle(CarlaEgoVehicle):
         self.ax_2d.set(xlabel="x", ylabel="y", title="Bird's eye view (Ego car frame)")
 
         # Plot lane markings
+        # road_ang = self.curr_waypoint.transform.rotation.yaw*np.pi/180
+        road_ang = utils.deg360(utils.deg360(-self.curr_waypoint.transform.rotation.yaw) - utils.deg360(-self.player.get_transform().rotation.yaw) )*np.pi/180
         #For label
-        self.ax_2d.plot(self.lane_potential.lane_edges_transformed[0][0], self.lane_potential.lane_edges_transformed[0][1], marker='_', label='Lane Edges', color='#ffcccb')
-        [self.ax_2d.plot(lane[0], lane[1], marker='_', color='#ffcccb') for lane in self.lane_potential.lane_edges_transformed]
+        self.ax_2d.plot([self.lane_potential.lane_edges_transformed[0][0]-(100*np.cos(road_ang)), self.lane_potential.lane_edges_transformed[0][0], self.lane_potential.lane_edges_transformed[0][0]+(100*np.cos(road_ang))], 
+                        [self.lane_potential.lane_edges_transformed[0][1]-(100*np.sin(road_ang)), self.lane_potential.lane_edges_transformed[0][1], self.lane_potential.lane_edges_transformed[0][1]+(100*np.sin(road_ang))], 'k--', label='Lane Edges')
+
+        [self.ax_2d.plot([lane[0]-(100*np.cos(road_ang)), lane[0], lane[0]+(100*np.cos(road_ang))], [lane[1]-(100*np.sin(road_ang)), lane[1], lane[1]+(100*np.sin(road_ang))], 'k--') for lane in self.lane_potential.lane_edges_transformed]
 
         #Plot ego vehicle and its polygon
         self.ax_2d.plot(self.car_potential.ego_car_location[0], self.car_potential.ego_car_location[1], marker='x', color='#0000ff' )
@@ -258,7 +265,7 @@ class EgoVehicle(CarlaEgoVehicle):
         #Plot Reachable / safe set
         if self.L_safe: self.ax_2d.scatter(self.L_safe[0], self.L_safe[1], marker='.', color='#D3D3D3', label='Safe Set')
 
-        self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1], color='#ffa500', label='Reach Set')
+        self.ax_2d.plot(np.asarray(self.reach_set.reach_set)[:,0],np.asarray(self.reach_set.reach_set)[:,1], color='#ffa500', label='Reach Set (T_h = 1s)')
 
         if self.L_safe_reach:self.ax_2d.scatter(self.L_safe_reach[0], self.L_safe_reach[1], marker='.', color='#4dff4d', label='Safe, Reach Set')
 
@@ -278,7 +285,7 @@ class EgoVehicle(CarlaEgoVehicle):
         self.ax_2d.set_xlim(-10,20)
         self.ax_2d.set_ylim(-20,20)
         #Set legend
-        self.ax_2d.legend(prop={'size': 12})  
+        self.ax_2d.legend(prop={'size': 10})  
         
         if self.plot_3d == True:
             self.ax_3d.set_xlim(-20,20)

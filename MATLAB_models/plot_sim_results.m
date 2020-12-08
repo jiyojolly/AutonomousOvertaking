@@ -3,8 +3,8 @@ clc;
 clf;
 close all;
 init_mpc;
-load('simdata/2020-12-1 22:48:33_sim_out_2seperateLV');
-start_time_idx = 10;
+load('simdata/2020-12-7 22:22:54_sim_out');
+start_time_idx = 20;
 
 %Reference state data
 Pdes_timeseries = timeseries(out.P_des.Data(start_time_idx:end,1:2),...
@@ -13,7 +13,7 @@ Pdes_timeseries = timeseries(out.P_des.Data(start_time_idx:end,1:2),...
 x_ref_timeseries = timeseries(out.x_ref_curr.Data(start_time_idx:end,1:2),...
                       out.x_ref_curr.Time(start_time_idx:end));
 % Obstacle data
-obstcl_timeseries = timeseries(out.obstcl.Data(:,:,start_time_idx:end),... 
+obstcl_timeseries = timeseries(out.obstcl.Data(start_time_idx:end,:),... 
                                 out.obstcl.Time(start_time_idx:end));
 ellip_coeff_timeseries = timeseries(out.ellip_coeffcients.Data(start_time_idx:end,:),... 
                                 out.obstcl.Time(start_time_idx:end));
@@ -163,7 +163,9 @@ plot(x_actual_timeseries.Data(:,1), x_actual_timeseries.Data(:,2),...
 plgn = polyshape(ego_car_timeseries.Data(:,1,i), ego_car_timeseries.Data(:,2,i));
 plot(plgn,'EdgeColor', '#0000ff', 'FaceColor', 'None', 'LineStyle', ':','DisplayName','Ego Car');
 %Plot obstacle polygon
-plgn = polyshape(obstcl_timeseries.Data(:,1,i), obstcl_timeseries.Data(:,2,i));
+plgn = polyshape([obstcl_timeseries.Data(i,1)-(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)-(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)+(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)+(obstcl_timeseries.Data(i,3)/2)],...
+                         [obstcl_timeseries.Data(i,2)-(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)+(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)+(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)-(obstcl_timeseries.Data(i,4)/2)]);
+plgn = rotate(plgn,obstcl_timeseries.Data(i,5),[obstcl_timeseries.Data(i,1),obstcl_timeseries.Data(i,2)]);
 plot(plgn, 'EdgeColor', '#FF0000', 'FaceColor', '#ff726f','DisplayName','Obstacle');
 %Plot inflated obstacle ellipse
 n=ellip_coeff_timeseries.Data(i,6);
@@ -184,7 +186,10 @@ for i = 1:8:size(x_pred_timeseries.Time)
     scatter(x_ref_timeseries.Data(i,1), x_ref_timeseries.Data(i,2), 25, 'd',...
             'MarkerEdgeColor','#CCCC00','MarkerFaceColor', '#CCCC00','HandleVisibility','off');
     %Plot obstacle polygon
-    plgn = polyshape(obstcl_timeseries.Data(:,1,i), obstcl_timeseries.Data(:,2,i));
+    plgn = polyshape([obstcl_timeseries.Data(i,1)-(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)-(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)+(obstcl_timeseries.Data(i,3)/2), obstcl_timeseries.Data(i,1)+(obstcl_timeseries.Data(i,3)/2)],...
+                         [obstcl_timeseries.Data(i,2)-(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)+(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)+(obstcl_timeseries.Data(i,4)/2), obstcl_timeseries.Data(i,2)-(obstcl_timeseries.Data(i,4)/2)]);
+    plgn = rotate(plgn,obstcl_timeseries.Data(i,5),[obstcl_timeseries.Data(i,1),obstcl_timeseries.Data(i,2)]);
+
     plot(plgn, 'EdgeColor', '#FF0000', 'FaceColor', '#ff726f','HandleVisibility','off');
     %Plot inflated obstacle ellipse
     n=ellip_coeff_timeseries.Data(i,6);

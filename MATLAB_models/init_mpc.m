@@ -14,7 +14,7 @@ v_des = 8.333; %30km\h
 
 obstcl_ellip_order = 6;
 ellip_coeff = [2 2 2 2 2 obstcl_ellip_order];
-inflation_factor = 1.5;
+inflation_factor = 1.2;
 
 x = [0 1 2 3];
 mv = [1 1];
@@ -39,7 +39,7 @@ mpc_planner.ManipulatedVariables(1).RateMax = 0.9;
 mpc_planner.ManipulatedVariables(1).RateMin = -0.5;
 mpc_planner.ManipulatedVariables(1).RateMax = 0.5;
 %Weights
-mpc_planner.Weights.OutputVariables = [10 10 5 5];
+mpc_planner.Weights.OutputVariables = [10 10 2 5];
 
 createParameterBus(mpc_planner,['MPC_Planner_Controller/MPC/Nonlinear MPC Controller'],'params',{ellip_coeff});
 x0 = [2 0 -pi/2 0.3];

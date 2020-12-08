@@ -27,14 +27,15 @@ function plotAll(x_curr, x_ref_curr, obstcl, ellip_coeff, x_pred, mv_pred, ego_c
 
     %Plot obstacle
     if ~isscalar(obstcl) && nnz(obstcl) ~= 0
-        pgon = polyshape(obstcl(:,1),obstcl(:,2));
-        plot(pgon);
-
+        pgon = polyshape([obstcl(1)-(obstcl(3)/2), obstcl(1)-(obstcl(3)/2), obstcl(1)+(obstcl(3)/2), obstcl(1)+(obstcl(3)/2)],...
+                         [obstcl(2)-(obstcl(4)/2), obstcl(2)+(obstcl(4)/2), obstcl(2)+(obstcl(4)/2), obstcl(2)-(obstcl(4)/2)]);
         %Plot fitted ellipse
         n=ellip_coeff(6);
-        a = ellip_coeff(1) ; b = ellip_coeff(2); xe = ellip_coeff(3); ye = ellip_coeff(4); phi = ellip_coeff(5);
+        a = ellip_coeff(1) ; b = ellip_coeff(2); xe = ellip_coeff(3); ye = ellip_coeff(4); phi = -ellip_coeff(5);
+        plgn = rotate(pgon,obstcl(5),[xe,ye]);        
         ellip = @(x,y) ((((x-xe).*cos(phi) - (y-ye).*sin(phi)))./a).^n + ((((x-xe).*sin(phi) + (y-ye).*cos(phi)))./b).^n - 1;
 
-        fimplicit(ellip, [-230 -180 60 70])
+        plot(plgn)
+        fimplicit(ellip)
     end
 end
