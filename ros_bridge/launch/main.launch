@@ -49,11 +49,11 @@
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
   <!-- Scenario 6 - 1 Vehicle with velocity - Overtake -->
-<!--   <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
+  <arg name="spawn_point" default="-198,-50,2,0,0,90"/>
   <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
-  <arg name="npc_spawn_vels" default="[-5.0]"/>
+  <arg name="npc_spawn_vels" default="[-3.0]"/>
   <arg name="npc_autopilot" default="false"/> 
-  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
 
   <!-- Scenario 7 - 2 Static Vehicle - Overtake-->
   <!-- <arg name="spawn_point" default="-198,-45,2,0,0,90"/> -->
@@ -63,7 +63,8 @@
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
   <!-- Scenario 8 - 1 Vehicle dynamic - Overtake -->
-  <!-- <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
+<!--   <arg name="spawn_point" default="-198,-55,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-65,2,-90]]"/>
   <arg name="npc_spawn_vels" default="[ -0.0]"/>
   <arg name="npc_autopilot" default="true"/> 
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
@@ -77,11 +78,11 @@
   <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
   <!-- Scenario 10 - Random Static Vehicles - Overtake-->
-  <arg name="spawn_point" default="-198,-75,2,0,0,90"/>
-  <arg name="npc_spawn_points" default="[[-198,-90,2,-90], [-197,-126,2,-90], [-198.2,-180.7,2,-90], [-198.2,-185,2,-89]]"/>
+<!--   <arg name="spawn_point" default="-198,-75,2,0,0,90"/>
+  <arg name="npc_spawn_points" default="[[-198,-85,2,-90], [-197,-126,2,-90], [-198.2,-180.7,2,-90], [-198.2,-185,2,-89]]"/>
   <arg name="npc_spawn_vels" default="[-3.0,0.0,0.0,0.0]"/>
   <arg name="npc_autopilot" default="false"/>
-  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/>
+  <arg name="npc_vehicle_filter" default='vehicle.audi.a2'/> -->
 
   <!-- ############# Scenarios #################################################################### -->
 

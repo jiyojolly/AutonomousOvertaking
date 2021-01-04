@@ -3,7 +3,7 @@ clc;
 clf;
 close all;
 init_mpc;
-load('simdata/2020-12-7 22:22:54_sim_out');
+load('simdata/2020-12-21 01:00:58_sim_out');
 start_time_idx = 20;
 
 %Reference state data
